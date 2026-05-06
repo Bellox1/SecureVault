@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SecureVault - Mon coffre chiffré">
+  <title>SecureVault — Mon Coffre</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Security: prevent caching of the app page -->
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+</head>
+<body>
+
+<!-- ─── Loading Screen ──────────────────────────────────────────────────────── -->
+<div id="loading-screen">
+  <div class="loading-logo"><i data-lucide="lock" style="width:48px;height:48px"></i></div>
+  <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+  <p class="loading-text">Déchiffrement sécurisé<span id="loading-dots">...</span></p>
+</div>
+
+<!-- ─── App Shell ───────────────────────────────────────────────────────────── -->
+<div class="app-shell" style="display:none" id="app-shell">
+
+  <!-- ─── Sidebar ─────────────────────────────────────────────────────────── -->
+  <aside class="sidebar" role="navigation" aria-label="Navigation principale">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><i data-lucide="shield-check"></i></div>
+      <div class="sidebar-brand">
+        <span>SecureVault</span>
+      </div>
+    </div>
+
+    <div class="sidebar-search">
+      <input type="search" id="search-input" class="sidebar-search-input"
+        placeholder="Rechercher..." autocomplete="off" aria-label="Rechercher dans le coffre">
+    </div>
+
+    <nav class="sidebar-nav">
+      <p class="nav-section-label">Coffre</p>
+
+      <div class="nav-item active" data-filter="all" role="button" tabindex="0">
+        <span class="nav-icon"><i data-lucide="layout-grid"></i></span>
+        <span>Tous les éléments</span>
+        <span class="nav-badge" id="badge-all">0</span>
+      </div>
+
+      <div class="nav-item" data-filter="favorites" role="button" tabindex="0">
+        <span class="nav-icon"><i data-lucide="star"></i></span>
+        <span>Favoris</span>
+      </div>
+
+      <p class="nav-section-label">Catégories</p>
+
+      <div class="nav-item" data-filter="login" role="button" tabindex="0">
+        <span class="nav-icon"><i data-lucide="key"></i></span>
+        <span>Identifiants</span>
+      </div>
+
+      <div class="nav-item" data-filter="card" role="button" tabindex="0">
+        <span class="nav-icon"><i data-lucide="credit-card"></i></span>
+        <span>Cartes bancaires</span>
+      </div>
+
+      <div class="nav-item" data-filter="note" role="button" tabindex="0">
+        <span class="nav-icon"><i data-lucide="sticky-note"></i></span>
+        <span>Notes sécurisées</span>
+      </div>
+
+      <div class="nav-item" data-filter="identity" role="button" tabindex="0">
+        <span class="nav-icon"><i data-lucide="user"></i></span>
+        <span>Identités</span>
+      </div>
+
+      <p class="nav-section-label">Outils</p>
+
+      <div class="nav-item" id="open-generator" role="button" tabindex="0">
+        <span class="nav-icon"><i data-lucide="dices"></i></span>
+        <span>Générateur</span>
+      </div>
+
+      <div class="nav-item" id="lock-btn" role="button" tabindex="0">
+        <span class="nav-icon"><i data-lucide="lock"></i></span>
+        <span>Verrouiller</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-avatar" id="user-avatar-initials">??</div>
+      <div class="user-info" style="flex: 1; min-width: 0">
+        <div class="user-email" id="user-email-display" style="font-size: 0.8125rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">—</div>
+        <div class="user-plan" style="font-size: 0.75rem; color: var(--bw-text-muted)">Zero-Knowledge</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn" title="Se déconnecter" style="padding: 0.5rem"><i data-lucide="log-out" style="width: 18px"></i></button>
+    </div>
+  </aside>
+
+  <!-- ─── Main ──────────────────────────────────────────────────────────────── -->
+  <section class="main-content" role="main">
+    <header class="top-bar">
+      <h1 style="font-size: 1.5rem">Mon Coffre</h1>
+      <div class="top-bar-actions">
+        <button class="btn btn-primary btn-sm" id="add-item-topbar">
+          <i data-lucide="plus" style="width:16px"></i> Ajouter un élément
+        </button>
+      </div>
+    </header>
+
+    <div class="content-area">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-label">Éléments total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-logins">—</div>
+          <div class="stat-label">Identifiants</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-weak" style="color: #ef4444">—</div>
+          <div class="stat-label">Mots de passe faibles</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-favs">—</div>
+          <div class="stat-label">Favoris</div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem">
+        <h2 style="font-size: 1.25rem">Éléments récents</h2>
+        <button class="btn btn-outline btn-sm" id="add-item-btn"><i data-lucide="plus" style="width:16px"></i> Nouveau</button>
+      </div>
+
+      <div id="vault-loading" style="text-align:center; padding: 4rem; color: var(--bw-text-muted)">
+        <div style="animation: pulse 2s infinite; margin-bottom: 1rem"><i data-lucide="unlock" style="width:48px;height:48px;color: var(--bw-primary)"></i></div>
+        <p>Accès sécurisé en cours...</p>
+      </div>
+
+      <div class="vault-grid" id="vault-grid"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════════════════════════════════════ -->
+
+<!-- ─── View Item Modal ─────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="view-modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="view-item-name">
+  <div class="modal" id="view-modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="view-item-name">Élément</h2>
+      <button class="modal-close" aria-label="Fermer">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Username -->
+      <div class="detail-field">
+        <div class="detail-field-label">Identifiant</div>
+        <div class="detail-field-value" id="view-username-val">—</div>
+        <div class="detail-field-actions">
+          <button class="btn btn-icon btn-ghost" id="view-copy-user" title="Copier l'identifiant" aria-label="Copier l'identifiant"><i data-lucide="copy"></i></button>
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="detail-field">
+        <div class="detail-field-label">Mot de passe</div>
+        <div class="detail-field-value mono" id="view-password-val" data-raw="">••••••••</div>
+        <div class="detail-field-actions">
+          <button class="btn btn-icon btn-ghost" id="view-toggle-pass" title="Afficher" aria-label="Afficher le mot de passe"><i data-lucide="eye"></i></button>
+          <button class="btn btn-icon btn-ghost" id="view-copy-pass" title="Copier" aria-label="Copier le mot de passe"><i data-lucide="copy"></i></button>
+        </div>
+      </div>
+
+      <!-- URL -->
+      <div class="detail-field">
+        <div class="detail-field-label">URL</div>
+        <div class="detail-field-value" id="view-url-val">—</div>
+        <div class="detail-field-actions">
+          <button class="btn btn-icon btn-ghost" id="view-copy-url" title="Copier l'URL" aria-label="Copier l'URL"><i data-lucide="external-link"></i></button>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="detail-field" style="align-items:flex-start">
+        <div class="detail-field-label" style="padding-top:0.75rem">Notes</div>
+        <div class="detail-field-value" id="view-notes-val" style="white-space:pre-wrap">—</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="view-delete-btn"><i data-lucide="trash-2" style="width:16px"></i> Supprimer</button>
+      <button class="btn btn-secondary" id="view-edit-btn"><i data-lucide="edit-3" style="width:16px"></i> Modifier</button>
+      <button class="btn btn-ghost modal-cancel">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Create / Edit Item Modal ────────────────────────────────────────────── -->
+<div class="modal-overlay" id="item-modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="item-modal-title">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="item-modal-title">Nouvel élément</h2>
+      <button class="modal-close" aria-label="Fermer">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Type tabs -->
+      <div class="type-tabs" role="tablist" aria-label="Type d'élément">
+        <button class="type-tab active" data-type="login" role="tab" aria-selected="true"><i data-lucide="key" style="width:14px"></i> Identifiant</button>
+        <button class="type-tab" data-type="card" role="tab"><i data-lucide="credit-card" style="width:14px"></i> Carte</button>
+        <button class="type-tab" data-type="note" role="tab"><i data-lucide="sticky-note" style="width:14px"></i> Note</button>
+        <button class="type-tab" data-type="identity" role="tab"><i data-lucide="user" style="width:14px"></i> Identité</button>
+      </div>
+
+      <form id="item-form" novalidate autocomplete="off">
+        <!-- Name (always visible) -->
+        <div class="form-group">
+          <label class="form-label" for="item-name">Nom *</label>
+          <input type="text" id="item-name" class="form-control" placeholder="Ex: Google, Netflix..." required maxlength="500">
+        </div>
+
+        <!-- Login/Note/Identity fields -->
+        <div id="login-fields">
+          <div class="form-group">
+            <label class="form-label" for="item-username">Identifiant / Email</label>
+            <div class="input-with-icon">
+              <span class="input-icon"><i data-lucide="user" style="width:14px"></i></span>
+              <input type="text" id="item-username" class="form-control" placeholder="utilisateur@exemple.com" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="item-password">Mot de passe</label>
+            <div class="input-with-icon">
+              <span class="input-icon"><i data-lucide="lock" style="width:14px"></i></span>
+              <input type="password" id="item-password" class="form-control" placeholder="Mot de passe" autocomplete="new-password">
+              <button type="button" class="input-toggle-btn" id="toggle-item-pass" aria-label="Afficher"><i data-lucide="eye"></i></button>
+            </div>
+            <div class="strength-bar-wrap">
+              <div class="strength-bar">
+                <div class="strength-bar-fill" id="item-strength-fill" style="width:0%;background:#666"></div>
+              </div>
+              <span class="strength-label" id="item-strength-label"></span>
+            </div>
+          </div>
+
+          <!-- Password generator inline -->
+          <div style="margin-bottom:1rem">
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.8rem">
+              <span style="font-size:0.75rem;color:var(--text-muted);flex:1">Suggestion générée</span>
+              <button type="button" class="btn btn-ghost btn-sm" id="gen-refresh-btn"><i data-lucide="refresh-cw" style="width:14px"></i> Regénérer</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="gen-password-btn"><i data-lucide="check" style="width:14px"></i> Utiliser</button>
+            </div>
+            <div class="gen-password-display">
+              <span class="gen-password-text mono" id="gen-password-preview">—</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
+              <label style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">Longueur: <span id="gen-length-val">20</span></label>
+              <input type="range" id="gen-length" class="length-slider" min="8" max="64" value="20" style="flex:1">
+            </div>
+            <div class="gen-options" style="margin-top:0.5rem">
+              <label class="gen-option"><input type="checkbox" id="gen-upper" checked> Majuscules</label>
+              <label class="gen-option"><input type="checkbox" id="gen-lower" checked> Minuscules</label>
+              <label class="gen-option"><input type="checkbox" id="gen-nums" checked> Chiffres</label>
+              <label class="gen-option"><input type="checkbox" id="gen-syms" checked> Symboles</label>
+              <label class="gen-option"><input type="checkbox" id="gen-no-ambig" checked> Exclure ambigu</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="item-url">URL / Site web</label>
+            <div class="input-with-icon">
+              <span class="input-icon"><i data-lucide="globe" style="width:14px"></i></span>
+              <input type="url" id="item-url" class="form-control" placeholder="https://exemple.com" autocomplete="off">
+            </div>
+          </div>
+        </div>
+
+        <!-- Card fields -->
+        <div id="card-fields" style="display:none">
+          <div class="form-group">
+            <label class="form-label" for="item-card-holder">Titulaire</label>
+            <input type="text" id="item-card-holder" class="form-control" placeholder="JEAN DUPONT">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="item-card-number">Numéro de carte</label>
+            <input type="text" id="item-card-number" class="form-control mono" placeholder="XXXX XXXX XXXX XXXX" maxlength="19">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+            <div class="form-group">
+              <label class="form-label" for="item-expiry">Expiration</label>
+              <input type="text" id="item-expiry" class="form-control" placeholder="MM/AA" maxlength="5">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="item-cvv">CVV</label>
+              <input type="text" id="item-cvv" class="form-control" placeholder="123" maxlength="4">
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes (always visible) -->
+        <div class="form-group">
+          <label class="form-label" for="item-notes">Notes</label>
+          <textarea id="item-notes" class="form-control" placeholder="Notes privées chiffrées..." rows="3" maxlength="10000"></textarea>
+        </div>
+
+        <!-- Favorite toggle -->
+        <div class="toggle-group">
+          <span class="toggle-label"><i data-lucide="star" style="width:14px;margin-right:4px"></i> Marquer comme favori</span>
+          <label class="toggle">
+            <input type="checkbox" id="item-favorite">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost modal-cancel">Annuler</button>
+      <button type="submit" form="item-form" class="btn btn-primary" id="save-item-btn">
+        <span class="btn-text" style="display:flex;align-items:center;gap:0.5rem"><i data-lucide="save" style="width:18px"></i> Enregistrer</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Delete Confirmation Modal ───────────────────────────────────────────── -->
+<div class="modal-overlay" id="delete-modal-overlay" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal" id="delete-modal" style="max-width:400px">
+    <div class="modal-header">
+      <h2 class="modal-title"><i data-lucide="trash-2" style="width:20px;margin-right:8px;color:var(--danger)"></i> Suppression</h2>
+      <button class="modal-close" aria-label="Fermer">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-secondary)">
+        Supprimer définitivement <strong id="delete-item-name" style="color:var(--text-primary)">cet élément</strong> ?
+        Cette action est irréversible.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost modal-cancel">Annuler</button>
+      <button class="btn btn-danger" id="delete-confirm-btn">
+        <span class="btn-text" style="display:flex;align-items:center;gap:0.5rem"><i data-lucide="trash-2" style="width:18px"></i> Supprimer</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Toast Container ─────────────────────────────────────────────────────── -->
+<div id="toast-container" aria-live="polite"></div>
+
+<script src="/js/crypto.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script>
+  // Show app shell after init
+  document.addEventListener('DOMContentLoaded', () => {
+    // Animate loading dots
+    let dots = 0;
+    const dotsEl = document.getElementById('loading-dots');
+    const dotTimer = setInterval(() => {
+      dots = (dots + 1) % 4;
+      if (dotsEl) dotsEl.textContent = '.'.repeat(dots) || ' ';
+    }, 400);
+
+    // Show app shell once loaded (App.init handles the rest)
+    const originalInit = App.init.bind(App);
+    // Patch to show app-shell
+    const observer = new MutationObserver(() => {
+      const ls = document.getElementById('loading-screen');
+      if (ls && ls.style.display === 'none') {
+        clearInterval(dotTimer);
+        const shell = document.getElementById('app-shell');
+        if (shell) shell.style.display = 'grid';
+        observer.disconnect();
+      }
+    });
+    const ls = document.getElementById('loading-screen');
+    if (ls) observer.observe(ls, { attributes: true, attributeFilter: ['style'] });
+
+    // Open generator from sidebar
+    document.getElementById('open-generator')?.addEventListener('click', () => {
+      document.getElementById('item-modal-overlay').style.display = 'flex';
+      // Scroll to generator section
+      document.getElementById('gen-length')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      App.generateAndFill();
+    });
+  });
+</script>
+</body>
+</html>

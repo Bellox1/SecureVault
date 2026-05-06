@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion — SecureVault</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="auth-page">
+
+<div class="auth-card fade-in">
+  <div class="brand" style="justify-content: center; margin-bottom: 2rem">
+    <span>SecureVault</span>
+  </div>
+  
+  <h1>Connexion</h1>
+  <p>Identifiez-vous pour déverrouiller votre coffre.</p>
+
+  <div id="auth-error" style="display:none; color: #ef4444; margin-bottom: 2rem; font-size: 0.875rem; background: #fee2e2; padding: 0.75rem; border-radius: 8px">
+    Identifiants incorrects.
+  </div>
+
+  <form id="login-form">
+    <div class="form-group" style="text-align: left">
+      <label class="form-label">Email</label>
+      <input type="email" id="email" class="form-control" placeholder="nom@exemple.com" required>
+    </div>
+    
+    <div class="form-group" style="text-align: left">
+      <label class="form-label">Mot de passe maître</label>
+      <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem">Se connecter</button>
+  </form>
+
+  <div class="auth-footer">
+    <p>Nouveau membre ? <a href="/register.html">Créer un compte</a></p>
+    <a href="/" style="display: inline-block; margin-top: 1.5rem; color: var(--bw-text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em">← Retour à l'accueil</a>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="/js/crypto.js"></script>
+<script src="/js/api.js"></script>
+<script>
+lucide.createIcons();
+const $ = id => document.getElementById(id);
+$('login-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const email = $('email').value;
+  const password = $('password').value;
+  const btn = e.target.querySelector('button');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Déchiffrement...';
+
+  try {
+    const { salt } = await API.getSalt(email);
+    const passwordHash = await Crypto.deriveAuthHash(password, salt);
+    await API.login(email, passwordHash);
+    sessionStorage.setItem('sv_email', email);
+    sessionStorage.setItem('sv_salt', salt);
+    sessionStorage.setItem('sv_tmp_mp', password);
+    window.location.href = '/app.html';
+  } catch (err) {
+    $('auth-error').style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+};
+</script>
+</body>
+</html>

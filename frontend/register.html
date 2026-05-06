@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inscription — SecureVault</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="auth-page">
+
+<div class="auth-card fade-in">
+  <div class="brand" style="justify-content: center; margin-bottom: 2rem">
+    <span>SecureVault</span>
+  </div>
+  
+  <div id="register-step-1">
+    <h1>Inscription</h1>
+    <p>Créez votre compte sécurisé dès aujourd'hui.</p>
+
+    <form id="invite-form">
+      <div class="form-group" style="text-align: left">
+        <label class="form-label">Email</label>
+        <input type="email" id="reg-email" class="form-control" placeholder="nom@exemple.com" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem">S'inscrire</button>
+    </form>
+  </div>
+
+  <div id="register-step-2" style="display:none">
+    <h1>Configuration</h1>
+    <p>Créez votre mot de passe maître robuste.</p>
+
+    <form id="register-form">
+      <input type="hidden" id="reg-token">
+      <input type="hidden" id="reg-final-email">
+      <div class="form-group" style="text-align: left">
+        <label class="form-label">Clé Maître</label>
+        <input type="password" id="reg-password" class="form-control" minlength="12" required>
+      </div>
+      <div class="form-group" style="text-align: left">
+        <label class="form-label">Confirmation</label>
+        <input type="password" id="reg-password-confirm" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem">Finaliser l'inscription</button>
+    </form>
+  </div>
+
+  <div class="auth-footer">
+    <p>Déjà membre ? <a href="/login.html">Se connecter</a></p>
+    <a href="/" style="display: inline-block; margin-top: 1.5rem; color: var(--bw-text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em">← Retour à l'accueil</a>
+  </div>
+</div>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="/js/crypto.js"></script>
+<script src="/js/api.js"></script>
+<script>
+lucide.createIcons();
+const $ = id => document.getElementById(id);
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('regToken');
+const email = urlParams.get('email');
+
+if (token && email) {
+  $('register-step-1').style.display = 'none';
+  $('register-step-2').style.display = 'block';
+  $('reg-token').value = token;
+  $('reg-final-email').value = email;
+}
+
+$('invite-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Envoi...';
+  try {
+    await API.post('/auth/register-invite', { email: $('reg-email').value });
+    alert('Vérifiez le terminal backend pour le lien d\'invitation.');
+  } catch (err) { alert(err.message); }
+  btn.disabled = false;
+  btn.textContent = originalText;
+};
+
+$('register-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const password = $('reg-password').value;
+    if (password !== $('reg-password-confirm').value) return alert('Les mots de passe ne correspondent pas.');
+    const btn = e.target.querySelector('button');
+    btn.disabled = true;
+    try {
+        const salt = Crypto.generateSalt();
+        const passwordHash = await Crypto.deriveAuthHash(password, salt);
+        await API.post('/auth/register', { 
+            email: $('reg-final-email').value, 
+            passwordHash, 
+            salt, 
+            token: $('reg-token').value 
+        });
+        alert('Compte créé avec succès !');
+        window.location.href = '/login.html';
+    } catch (err) { alert(err.message); }
+    btn.disabled = false;
+};
+</script>
+</body>
+</html>
