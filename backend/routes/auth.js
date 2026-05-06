@@ -66,7 +66,7 @@ router.post('/register-invite',
         .run(token, normalizedEmail, expiresAt);
 
       // Simulation d'envoi d'email
-      const inviteUrl = `${req.headers.origin}/index.html?regToken=${token}&email=${encodeURIComponent(normalizedEmail)}`;
+      const inviteUrl = `${req.headers.origin}/register.html?regToken=${token}&email=${encodeURIComponent(normalizedEmail)}`;
       logger.info('Verification link generated', { inviteUrl });
 
       // En mode local, on renvoie l'URL pour faciliter le test
