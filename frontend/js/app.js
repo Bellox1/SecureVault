@@ -182,11 +182,12 @@ const App = (() => {
       if (!raw) return;
       if (el.textContent === '••••••••') {
         el.textContent = raw;
-        $('view-toggle-pass').textContent = '🙈';
+        $('view-toggle-pass').innerHTML = '<i data-lucide="eye-off"></i>';
       } else {
         el.textContent = '••••••••';
-        $('view-toggle-pass').textContent = '👁️';
+        $('view-toggle-pass').innerHTML = '<i data-lucide="eye"></i>';
       }
+      lucide.createIcons();
     });
     $('view-edit-btn').addEventListener('click', () => {
       const id = $('view-modal').dataset.itemId;
@@ -227,7 +228,8 @@ const App = (() => {
     $('toggle-item-pass').addEventListener('click', () => {
       const inp = $('item-password');
       inp.type = inp.type === 'password' ? 'text' : 'password';
-      $('toggle-item-pass').textContent = inp.type === 'password' ? '👁️' : '🙈';
+      $('toggle-item-pass').innerHTML = `<i data-lucide="${inp.type === 'password' ? 'eye' : 'eye-off'}"></i>`;
+      lucide.createIcons();
     });
   }
 
