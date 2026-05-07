@@ -34,7 +34,7 @@
     <h2 style="margin-bottom: 0.75rem">Email envoyé !</h2>
     <p style="color: var(--bw-text-secondary); margin-bottom: 0.5rem">Un lien d'inscription a été envoyé à :</p>
     <p id="confirm-email-display" style="font-weight: 700; font-size: 1rem; color: var(--bw-text-primary); margin-bottom: 1.5rem; word-break: break-all;"></p>
-    <p style="font-size: 0.8125rem; color: var(--bw-text-muted); line-height: 1.7; background: var(--bw-bg-secondary); border-radius: 8px; padding: 1rem;">Vérifiez votre boîte de réception et cliquez sur le lien pour finaliser votre inscription. <strong>Le lien expire dans 30 minutes.</strong><br>Si vous ne le recevez pas, vérifiez vos spams.</p>
+    <p style="font-size: 0.8125rem; color: var(--bw-text-muted); line-height: 1.7; background: var(--bw-bg-secondary); border-radius: 8px; padding: 1rem;">Vérifiez votre boîte de réception et cliquez sur le lien pour finaliser votre inscription. <strong>Le lien expire dans 5 minutes.</strong><br>Si vous ne le recevez pas, vérifiez vos spams.</p>
   </div>
 
   <div id="register-step-2" style="display:none">
@@ -192,37 +192,56 @@ $('invite-form').onsubmit = async (e) => {
   const originalText = btn.textContent;
   btn.disabled = true;
   btn.textContent = 'Envoi en cours...';
+
+  // Nettoyer les anciens messages
+  ['cooldown-msg', 'error-msg'].forEach(cls => {
+    const old = $('invite-form').querySelector('.' + cls);
+    if (old) old.remove();
+  });
+
   try {
     const res = await API.post('/auth/register-invite', { email });
-    // Afficher la vue de confirmation inline
+
+    // Cooldown : le serveur répond 200 mais avec un message "patienter"
+    if (res.message && res.message.includes('patienter')) {
+      // Afficher le message d'avertissement
+      const errDiv = document.createElement('p');
+      errDiv.style.cssText = 'color: #b45309; background: #fef9c3; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; font-size: 0.875rem;';
+      errDiv.className = 'cooldown-msg';
+      errDiv.textContent = 'Un email a déjà été envoyé. Vous pourrez en demander un nouveau dans :';
+      $('invite-form').appendChild(errDiv);
+
+      // Compte à rebours de 60 secondes sur le bouton
+      let remaining = 60;
+      btn.disabled = true;
+      btn.textContent = `Patientez ${remaining}s...`;
+
+      const timer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(timer);
+          btn.disabled = false;
+          btn.textContent = originalText;
+          const old = $('invite-form').querySelector('.cooldown-msg');
+          if (old) old.remove();
+        } else {
+          btn.textContent = `Patientez ${remaining}s...`;
+          errDiv.textContent = `Un email a déjà été envoyé. Vous pourrez en demander un nouveau dans : ${remaining}s`;
+        }
+      }, 1000);
+
+      return; // Formulaire reste visible
+    }
+
+    // Succès réel : basculer vers la vue de confirmation
     $('register-step-1').style.display = 'none';
     $('confirm-email-display').textContent = email;
     $('register-step-confirm').style.display = 'block';
     lucide.createIcons();
-    // Si le message indique une limite (cooldown), afficher quand même mais avec le message du serveur
-    if (res.message && res.message.includes('patienter')) {
-      $('register-step-1').style.display = 'block';
-      $('register-step-confirm').style.display = 'none';
-      btn.disabled = false;
-      btn.textContent = originalText;
-      const errDiv = document.createElement('p');
-      errDiv.style.cssText = 'color: #b45309; background: #fef9c3; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; font-size: 0.875rem;';
-      errDiv.textContent = res.message;
-      // Remove any existing message
-      const old = $('invite-form').querySelector('.cooldown-msg');
-      if (old) old.remove();
-      errDiv.className = 'cooldown-msg';
-      $('invite-form').appendChild(errDiv);
-    }
+
   } catch (err) {
     btn.disabled = false;
     btn.textContent = originalText;
-
-    // Supprimer les anciens messages
-    ['cooldown-msg', 'error-msg'].forEach(cls => {
-      const old = $('invite-form').querySelector('.' + cls);
-      if (old) old.remove();
-    });
 
     const isEmailTaken = err.data?.code === 'EMAIL_ALREADY_EXISTS';
     const msgDiv = document.createElement('p');
@@ -232,7 +251,7 @@ $('invite-form').onsubmit = async (e) => {
     msgDiv.className = isEmailTaken ? 'cooldown-msg' : 'error-msg';
 
     if (isEmailTaken) {
-      msgDiv.innerHTML = `Un compte existe déjà pour cet email. <a href="/login.html" style="font-weight:700; color:#b45309; text-decoration:underline;">Se connecter →</a>`;
+      msgDiv.innerHTML = `Vérifiez l'email saisi — il se peut que ce ne soit pas le vôtre. Aviez-vous déjà un compte&nbsp;? <a href="/login.html" style="font-weight:700; color:#b45309; text-decoration:underline;">Connexion →</a>`;
     } else if (err.message && err.message.includes('patienter')) {
       msgDiv.textContent = err.message;
     } else {
@@ -241,6 +260,7 @@ $('invite-form').onsubmit = async (e) => {
     $('invite-form').appendChild(msgDiv);
   }
 };
+
 
 $('register-form').onsubmit = async (e) => {
     e.preventDefault();

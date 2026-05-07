@@ -82,7 +82,7 @@ router.post('/register-invite',
       const lastPending = db.prepare('SELECT expires_at FROM pending_registrations WHERE email = ?').get(normalizedEmail);
       
       if (lastPending) {
-        const timeSinceCreation = (30 * 60 * 1000) - (lastPending.expires_at - Date.now());
+        const timeSinceCreation = (5 * 60 * 1000) - (lastPending.expires_at - Date.now());
         
         // Invalider l'ancien lien dans tous les cas
         db.prepare('DELETE FROM pending_registrations WHERE email = ?').run(normalizedEmail);
@@ -95,13 +95,14 @@ router.post('/register-invite',
 
       // 2. Créer un nouveau token
       const token = crypto.randomBytes(32).toString('hex');
-      const expiresAt = Date.now() + 30 * 60 * 1000; // 30 mins
+      const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
 
       db.prepare('INSERT INTO pending_registrations (token, email, expires_at) VALUES (?, ?, ?)')
         .run(token, normalizedEmail, expiresAt);
 
       // Envoi réel de l'email (asynchrone pour ne pas bloquer la réponse)
-      const inviteUrl = `${req.headers.origin}/register.html?regToken=${token}&email=${encodeURIComponent(normalizedEmail)}`;
+      const baseUrl = process.env.APP_URL;
+      const inviteUrl = `${baseUrl}/register.html?regToken=${token}&email=${encodeURIComponent(normalizedEmail)}`;
       
       sendInviteEmail(normalizedEmail, inviteUrl).catch(err => {
         logger.error('Email sending failed in background', { error: err.message, email: normalizedEmail });

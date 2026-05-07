@@ -27,7 +27,7 @@ async function sendInviteEmail(to, inviteUrl) {
         <div style="text-align: center; margin: 2rem 0;">
           <a href="${inviteUrl}" style="background: #F97316; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Définir mon mot de passe maître</a>
         </div>
-        <p style="font-size: 0.875rem; color: #666;">Ce lien expirera dans 30 minutes.</p>
+        <p style="font-size: 0.875rem; color: #666;">Ce lien expirera dans 5 minutes.</p>
         <hr style="border: 0; border-top: 1px solid #eee; margin: 2rem 0;">
         <p style="font-size: 0.75rem; color: #999;">Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>
       </div>

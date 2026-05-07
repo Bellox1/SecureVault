@@ -19,17 +19,9 @@ const PORT = process.env.PORT || 3001;
 const isProd = process.env.NODE_ENV === 'production';
 
 // ─── Security Headers (Helmet) ────────────────────────────────────────────────
+// En développement via IP, on assouplit la CSP pour éviter que le navigateur bloque tout
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'"],
-    },
-  },
+  contentSecurityPolicy: false, // Désactivé temporairement pour test
   hsts: isProd ? {
     maxAge: 31536000,
     includeSubDomains: true,
@@ -39,7 +31,7 @@ app.use(helmet({
 }));
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3001').split(',');
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',');
 app.use(cors({
   origin: (origin, callback) => {
     if (!isProd || !origin || allowedOrigins.includes(origin)) {
