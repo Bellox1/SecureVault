@@ -254,6 +254,11 @@ const App = (() => {
       copyToClipboard($('tool-gen-password-preview').textContent, 'Mot de passe copié');
     });
 
+    // Export Events
+    $('export-json-btn').addEventListener('click', exportAsJSON);
+    $('export-csv-btn').addEventListener('click', exportAsCSV);
+    $('export-pdf-btn').addEventListener('click', exportAsPDF);
+
     // Copy buttons in view modal
     $('view-copy-user').addEventListener('click', () => {
       const val = $('view-username-val').textContent;
@@ -1102,6 +1107,120 @@ const App = (() => {
 
   // Auto-init Lucide observer for dynamically added elements (optional but good)
   // Instead, we call createIcons after renders.
+
+  // ─── Export Functions ──────────────────────────────────────────────────────
+  function downloadFile(content, fileName, contentType) {
+    const a = document.createElement('a');
+    const file = new Blob([content], { type: contentType });
+    a.href = URL.createObjectURL(file);
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function exportAsJSON() {
+    if (vaultItems.length === 0) return showToast('Le coffre est vide.', 'warning');
+    const data = JSON.stringify(vaultItems, null, 2);
+    downloadFile(data, 'securevault_export.json', 'application/json');
+    showToast('Export JSON terminé.');
+  }
+
+  function exportAsCSV() {
+    if (vaultItems.length === 0) return showToast('Le coffre est vide.', 'warning');
+    const headers = ['Type', 'Nom', 'Identifiant', 'Mot de passe', 'URL', 'Favori', 'Notes', 'Modifié'];
+    const rows = vaultItems.map(item => [
+      item.type,
+      item.name || '',
+      item.username || '',
+      item.password || '',
+      item.url || '',
+      item.favorite ? 'Oui' : 'Non',
+      (item.notes || '').replace(/\r?\n/g, ' '),
+      formatDate(item.updated_at)
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(r => r.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    downloadFile(csvContent, 'securevault_export.csv', 'text/csv;charset=utf-8;');
+    showToast('Export CSV terminé.');
+  }
+
+  function exportAsPDF() {
+    if (vaultItems.length === 0) return showToast('Le coffre est vide.', 'warning');
+    
+    showToast('Génération du PDF...');
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return showToast('Veuillez autoriser les popups pour l\'export PDF.', 'warning');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Export SecureVault - ${currentUser.email}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=JetBrains+Mono&display=swap');
+          body { font-family: 'Inter', sans-serif; padding: 50px; color: #1a1a1a; line-height: 1.5; }
+          .header { border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+          h1 { margin: 0; font-size: 24pt; letter-spacing: -0.02em; }
+          .meta { font-size: 10pt; color: #666; text-align: right; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+          th, td { border: 1px solid #e5e5e5; padding: 12px 10px; text-align: left; vertical-align: top; word-break: break-all; }
+          th { background-color: #f9f9f9; font-weight: 700; font-size: 9pt; text-transform: uppercase; letter-spacing: 0.05em; }
+          td { font-size: 10pt; }
+          .mono { font-family: 'JetBrains Mono', monospace; font-size: 9pt; background: #f5f5f5; padding: 2px 4px; border-radius: 3px; }
+          .footer { margin-top: 50px; font-size: 8pt; color: #aaa; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
+          @media print {
+            body { padding: 0; }
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div><h1>SecureVault</h1><p>Export de coffre-fort hautement sécurisé</p></div>
+          <div class="meta">
+            <strong>Utilisateur :</strong> ${currentUser.email}<br>
+            <strong>Date :</strong> ${new Date().toLocaleString('fr-FR')}
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 15%">Type</th>
+              <th style="width: 25%">Nom / Site</th>
+              <th style="width: 20%">Identifiant</th>
+              <th style="width: 20%">Mot de passe</th>
+              <th style="width: 20%">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${vaultItems.map(item => `
+              <tr>
+                <td>${item.type === 'login' ? 'Identifiant' : 'Note'}</td>
+                <td><strong>${escapeHTML(item.name)}</strong><br><small>${escapeHTML(item.url) || ''}</small></td>
+                <td>${escapeHTML(item.username) || '—'}</td>
+                <td><span class="mono">${escapeHTML(item.password) || '—'}</span></td>
+                <td style="font-size: 9pt">${escapeHTML(item.notes) || '—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div class="footer">
+          Ce document contient des informations confidentielles. Conservez-le dans un endroit sûr.<br>
+          Généré par SecureVault — Zero-Knowledge Architecture.
+        </div>
+        <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
 
   // ─── Public Interface ────────────────────────────────────────────────────────
   return {

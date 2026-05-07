@@ -13,15 +13,23 @@
     <span>SecureVault</span>
   </div>
   
-  <h1>Connexion</h1>
-  <p>Identifiez-vous pour déverrouiller votre coffre.</p>
+  <h1 id="auth-title">Connexion</h1>
+  <p id="auth-subtitle">Identifiez-vous pour déverrouiller votre coffre.</p>
+
+  <div id="remembered-account" style="display:none; text-align: center; margin-bottom: 2rem;">
+    <div style="background: var(--bw-blue-nude); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: var(--bw-primary);">
+      <i data-lucide="user" style="width: 32px; height: 32px;"></i>
+    </div>
+    <div id="display-email" style="font-weight: 600; font-size: 1.125rem; color: var(--bw-text-primary); margin-bottom: 0.25rem;"></div>
+    <button type="button" id="switch-account" class="btn-ghost" style="font-size: 0.8125rem; color: var(--bw-primary); background:none; border:none; cursor:pointer; font-weight: 600;">Utiliser un autre compte</button>
+  </div>
 
   <div id="auth-error" style="display:none; color: #ef4444; margin-bottom: 2rem; font-size: 0.875rem; background: #fee2e2; padding: 0.75rem; border-radius: 8px">
     Identifiants incorrects.
   </div>
 
   <form id="login-form">
-    <div class="form-group" style="text-align: left">
+    <div id="email-group" class="form-group" style="text-align: left">
       <label class="form-label">Email</label>
       <input type="email" id="email" class="form-control" placeholder="nom@exemple.com" required>
     </div>
@@ -51,6 +59,29 @@
 <script>
 lucide.createIcons();
 const $ = id => document.getElementById(id);
+
+// Remember Email Logic
+const savedEmail = localStorage.getItem('sv_remembered_email');
+if (savedEmail) {
+  $('email').value = savedEmail;
+  $('email-group').style.display = 'none';
+  $('display-email').textContent = savedEmail;
+  $('remembered-account').style.display = 'block';
+  $('auth-title').textContent = 'Bon retour';
+  $('auth-subtitle').textContent = 'Entrez votre mot de passe pour déverrouiller.';
+  setTimeout(() => $('password').focus(), 100);
+}
+
+$('switch-account').onclick = () => {
+  localStorage.removeItem('sv_remembered_email');
+  $('email').value = '';
+  $('email-group').style.display = 'block';
+  $('remembered-account').style.display = 'none';
+  $('auth-title').textContent = 'Connexion';
+  $('auth-subtitle').textContent = 'Identifiez-vous pour déverrouiller votre coffre.';
+  $('email').focus();
+};
+
 const toggleBtn = $('toggle-password');
 const passwordInput = $('password');
 
@@ -74,6 +105,7 @@ $('login-form').onsubmit = async (e) => {
     const { salt } = await API.getSalt(email);
     const passwordHash = await Crypto.deriveAuthHash(password, salt);
     await API.login(email, passwordHash);
+    localStorage.setItem('sv_remembered_email', email);
     sessionStorage.setItem('sv_email', email);
     sessionStorage.setItem('sv_salt', salt);
     sessionStorage.setItem('sv_tmp_mp', password);
