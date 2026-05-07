@@ -187,7 +187,19 @@ $('reg-password').oninput = (e) => {
 
 $('invite-form').onsubmit = async (e) => {
   e.preventDefault();
-  const email = $('reg-email').value;
+  const email = $('reg-email').value.trim();
+  
+  // Regex validation
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email)) {
+    const errDiv = document.createElement('p');
+    errDiv.style.cssText = 'color: #dc2626; background: #fef2f2; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; font-size: 0.875rem;';
+    errDiv.className = 'error-msg';
+    errDiv.textContent = "Veuillez entrer une adresse email valide.";
+    $('invite-form').appendChild(errDiv);
+    return;
+  }
+
   const btn = e.target.querySelector('button');
   const originalText = btn.textContent;
   btn.disabled = true;
@@ -202,35 +214,42 @@ $('invite-form').onsubmit = async (e) => {
   try {
     const res = await API.post('/auth/register-invite', { email });
 
-    // Cooldown : le serveur répond 200 mais avec un message "patienter"
-    if (res.message && res.message.includes('patienter')) {
-      // Afficher le message d'avertissement
+    // Cooldown ou Message Neutre (Compte existant)
+    if (res.message && (res.message.includes('patienter') || res.code === 'EMAIL_ALREADY_EXISTS_NEUTRAL')) {
+      const isCooldown = res.message.includes('patienter');
+      
       const errDiv = document.createElement('p');
-      errDiv.style.cssText = 'color: #b45309; background: #fef9c3; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; font-size: 0.875rem;';
-      errDiv.className = 'cooldown-msg';
-      errDiv.textContent = 'Un email a déjà été envoyé. Vous pourrez en demander un nouveau dans :';
+      errDiv.style.cssText = isCooldown 
+        ? 'color: #b45309; background: #fef9c3; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; font-size: 0.875rem;'
+        : 'color: #0f172a; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-top: 1rem; font-size: 0.875rem; line-height:1.5;';
+      errDiv.className = isCooldown ? 'cooldown-msg' : 'info-msg';
+      errDiv.textContent = res.message;
       $('invite-form').appendChild(errDiv);
 
-      // Compte à rebours de 60 secondes sur le bouton
-      let remaining = 60;
-      btn.disabled = true;
-      btn.textContent = `Patientez ${remaining}s...`;
+      if (isCooldown) {
+        // Compte à rebours de 60 secondes sur le bouton
+        let remaining = 60;
+        btn.disabled = true;
+        btn.textContent = `Patientez ${remaining}s...`;
 
-      const timer = setInterval(() => {
-        remaining--;
-        if (remaining <= 0) {
-          clearInterval(timer);
-          btn.disabled = false;
-          btn.textContent = originalText;
-          const old = $('invite-form').querySelector('.cooldown-msg');
-          if (old) old.remove();
-        } else {
-          btn.textContent = `Patientez ${remaining}s...`;
-          errDiv.textContent = `Un email a déjà été envoyé. Vous pourrez en demander un nouveau dans : ${remaining}s`;
-        }
-      }, 1000);
+        const timer = setInterval(() => {
+          remaining--;
+          if (remaining <= 0) {
+            clearInterval(timer);
+            btn.disabled = false;
+            btn.textContent = originalText;
+            const old = $('invite-form').querySelector('.cooldown-msg');
+            if (old) old.remove();
+          } else {
+            btn.textContent = `Patientez ${remaining}s...`;
+          }
+        }, 1000);
+      } else {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
 
-      return; // Formulaire reste visible
+      return;
     }
 
     // Succès réel : basculer vers la vue de confirmation

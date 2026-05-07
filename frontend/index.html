@@ -12,6 +12,8 @@
   <a href="/" class="brand" style="text-decoration: none; color: inherit;">
     <span>SecureVault</span>
   </a>
+  
+  <!-- Desktop Nav -->
   <nav class="nav-links">
     <a href="#features">Fonctionnalités</a>
     <a href="#security">Sécurité</a>
@@ -19,7 +21,25 @@
     <a href="/login.html" class="btn btn-ghost btn-sm">Se connecter</a>
     <a href="/register.html" class="btn btn-primary btn-sm">Démarrer <i data-lucide="arrow-right" style="width:16px; margin-left:0.5rem"></i></a>
   </nav>
+
+  <!-- Mobile Toggle -->
+  <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="menuToggle">
+    <i data-lucide="menu" class="icon-menu"></i>
+    <i data-lucide="x" class="icon-close" style="display: none"></i>
+  </button>
 </header>
+
+<!-- Mobile Dropdown Menu -->
+<div class="mobile-dropdown" id="mobileMenu">
+  <a href="#features" onclick="toggleMobileMenu()">Fonctionnalités</a>
+  <a href="#security" onclick="toggleMobileMenu()">Sécurité</a>
+  <a href="#download" onclick="toggleMobileMenu()">Télécharger</a>
+  <hr style="opacity: 0.05; margin: 0.5rem 0">
+  <div style="display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem">
+    <a href="/login.html" class="btn btn-ghost btn-sm" style="justify-content: flex-start; padding: 0.5rem 0">Se connecter</a>
+    <a href="/register.html" class="btn btn-primary btn-sm">Démarrer gratuitement</a>
+  </div>
+</div>
 
 <main>
   <!-- Hero Section -->
@@ -29,7 +49,7 @@
     </div>
     <h1>Protégez votre vie<br>numérique avec aisance.</h1>
     <p>Oubliez la fatigue des mots de passe. SecureVault génère, stocke et remplit vos identifiants partout où vous allez, avec une sécurité impénétrable.</p>
-    <div style="display: flex; gap: 1rem; justify-content: center">
+    <div class="btn-group-mobile" style="display: flex; gap: 1rem; justify-content: center">
       <a href="/register.html" class="btn btn-primary">Démarrer gratuitement <i data-lucide="arrow-right" style="width:16px; margin-left:0.5rem"></i></a>
       <a href="#features" class="btn btn-outline">Voir les démos</a>
     </div>
@@ -205,10 +225,10 @@
   </section>
 
   <!-- CTA Banner -->
-  <section style="max-width: var(--container-max); margin: 8rem auto; background: var(--bw-primary); border-radius: 40px; padding: 4rem; text-align: center; color: white">
+  <section class="cta-banner" style="background: var(--bw-primary); color: white">
     <h2 style="color: white; font-size: 2.5rem; margin-bottom: 1rem">Prêt à sécuriser votre futur ?</h2>
     <p style="opacity: 0.9; margin-bottom: 2.5rem">Rejoignez plus de 50 000 utilisateurs qui font confiance à SecureVault chaque jour.</p>
-    <div style="display: flex; gap: 1rem; justify-content: center">
+    <div class="btn-group-mobile" style="display: flex; gap: 1rem; justify-content: center">
       <a href="/register.html" class="btn btn-ghost" style="background: white; color: var(--bw-primary)">Créer mon compte gratuit</a>
       <a href="/login.html" class="btn btn-outline" style="border-color: white; color: white">Se connecter</a>
     </div>
@@ -313,7 +333,7 @@
 
   // Scroll Spy Logic
   const sections = document.querySelectorAll('section[id]');
-  const navLinks = document.querySelectorAll('.nav-links a:not(.btn)');
+  const navLinks = document.querySelectorAll('.nav-links a:not(.btn), .mobile-dropdown a:not(.btn)');
 
   const observerOptions = {
     root: null,
@@ -336,6 +356,28 @@
   }, observerOptions);
 
   sections.forEach(section => observer.observe(section));
+
+  // Mobile Menu Toggle
+  function toggleMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    const btn = document.getElementById('menuToggle');
+    const isActive = menu.classList.toggle('active');
+    btn.classList.toggle('active');
+
+    // If opening, ensure the correct link is highlighted
+    if (isActive) {
+      const scrollPos = window.scrollY + 100;
+      sections.forEach(section => {
+        if (scrollPos >= section.offsetTop && scrollPos < section.offsetTop + section.offsetHeight) {
+           const id = section.getAttribute('id');
+           navLinks.forEach(link => {
+             link.classList.remove('active');
+             if (link.getAttribute('href') === '#' + id) link.classList.add('active');
+           });
+        }
+      });
+    }
+  }
 </script>
 </body>
 </html>

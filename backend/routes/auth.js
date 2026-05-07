@@ -17,6 +17,9 @@ const QRCode = require('qrcode');
 // Configuration otplib
 authenticator.options = { window: 1 }; // Tolérance de 30s avant/après
 
+// Email validation regex (strict)
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 // Anti-cache middleware for auth routes
 router.use((req, res, next) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -69,12 +72,17 @@ router.post('/register-invite',
     const normalizedEmail = sanitizeEmail(email);
 
     try {
-      // Check existing user — feedback explicite
+      // Validation Regex manuelle
+      if (!EMAIL_REGEX.test(normalizedEmail)) {
+        return res.status(400).json({ error: 'Format d\'email invalide.' });
+      }
+
+      // Check existing user — feedback neutre pour la sécurité
       const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
       if (existing) {
-        return res.status(409).json({
-          error: 'Un compte est déjà associé à cet email.',
-          code: 'EMAIL_ALREADY_EXISTS'
+        return res.status(200).json({ 
+          message: "Vérifiez l'email saisi — il se peut que ce ne soit pas le vôtre ou aviez-vous déjà un compte ? Vous pouvez essayer de vous connecter.",
+          code: 'EMAIL_ALREADY_EXISTS_NEUTRAL'
         });
       }
 
