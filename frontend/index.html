@@ -9,9 +9,9 @@
 <body>
 
 <header class="landing-header">
-  <div class="brand">
+  <a href="/" class="brand" style="text-decoration: none; color: inherit;">
     <span>SecureVault</span>
-  </div>
+  </a>
   <nav class="nav-links">
     <a href="#features">Fonctionnalités</a>
     <a href="#security">Sécurité</a>
@@ -96,7 +96,7 @@
     <div class="feature-card">
       <div style="color: var(--bw-primary); margin-bottom: 1rem"><i data-lucide="infinity" style="width:32px;height:32px"></i></div>
       <h2>Stockage Illimité</h2>
-      <p>Stockez des milliers de mots de passe, cartes et notes sans aucune limite de volume.</p>
+      <p>Stockez des milliers de mots de passe et notes sans aucune limite de volume.</p>
     </div>
   </section>
 
@@ -214,9 +214,9 @@
 <footer style="padding: 6rem 2rem; background: var(--bw-bg-secondary); border-top: 1px solid var(--bw-border)">
   <div style="max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 4rem">
     <div>
-      <div class="brand" style="margin-bottom: 1.5rem">
+      <a href="/" class="brand" style="margin-bottom: 1.5rem; text-decoration: none; color: inherit;">
         <span>SecureVault</span>
-      </div>
+      </a>
       <p style="color: var(--bw-text-secondary); line-height: 1.8">La solution leader pour la gestion des identités numériques en entreprise et pour les particuliers. Sécurité maximale, simplicité totale.</p>
     </div>
     <div>
@@ -244,8 +244,68 @@
 </footer>
 
 <script src="https://unpkg.com/lucide@latest"></script>
-<script>
-  lucide.createIcons();
+  <script src="/js/api.js?v=1.1"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+    checkAuth();
+  });
+
+  async function checkAuth() {
+    try {
+      // Direct call with extra anti-cache headers
+      const response = await fetch('/api/auth/me?t=' + Date.now(), {
+        cache: 'no-store',
+        headers: { 
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (response.status === 200) {
+        const res = await response.json();
+        if (res && res.user) {
+          console.log('Session check: Logged in as', res.user.email);
+          const nav = document.querySelector('.nav-links');
+          // Replace login/register with Dashboard button
+          nav.innerHTML = `
+            <a href="#features">Fonctionnalités</a>
+            <a href="#security">Sécurité</a>
+            <a href="#download">Télécharger</a>
+            <a href="/app.html" class="btn btn-primary btn-sm">Mon Tableau de bord <i data-lucide="layout-grid" style="width:16px; margin-left:0.5rem"></i></a>
+          `;
+          
+          // Update hero buttons too
+          const heroActions = document.querySelector('.hero div[style*="display: flex"]');
+          if (heroActions) {
+            heroActions.innerHTML = `
+              <a href="/app.html" class="btn btn-primary">Accéder à mon coffre <i data-lucide="shield-check" style="width:18px; margin-left:0.5rem"></i></a>
+            `;
+          }
+
+          // Update footer CTA
+          const footerCta = document.querySelector('section[style*="background: var(--bw-primary)"]');
+          if (footerCta) {
+            footerCta.innerHTML = `
+              <div style="text-align:center; color:white">
+                <h2 style="color: white; font-size: 2.5rem; margin-bottom: 1rem">Content de vous revoir !</h2>
+                <p style="opacity: 0.9; margin-bottom: 2.5rem">Votre coffre vous attend avec toute la sécurité SecureVault.</p>
+                <div style="display: flex; gap: 1rem; justify-content: center">
+                  <a href="/app.html" class="btn btn-ghost" style="background: white; color: var(--bw-primary)">Ouvrir mon coffre-fort</a>
+                </div>
+              </div>
+            `;
+          }
+          lucide.createIcons();
+        }
+      } else {
+         console.log('Not logged in (', response.status, ')');
+      }
+    } catch (e) {
+      console.log('Session check error:', e);
+    }
+  }
+  checkAuth();
 
   // Scroll Spy Logic
   const sections = document.querySelectorAll('section[id]');

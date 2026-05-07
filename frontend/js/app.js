@@ -84,10 +84,9 @@ const App = (() => {
       showToast('Erreur de dérivation de clé. Reconnectez-vous.', 'error');
       setTimeout(() => { window.location.href = '/'; }, 2000);
       return;
-    } finally {
-      // CRITICAL: Clear master password from sessionStorage immediately
-      sessionStorage.removeItem('sv_tmp_mp');
     }
+    // Note: sv_tmp_mp is kept in sessionStorage to allow refreshes. 
+    // It's cleared on explicit logout or when tab is closed.
 
     // 3. Setup UI
     setupUI();
@@ -96,8 +95,9 @@ const App = (() => {
     // 4. Load vault
     await loadVault();
 
-    // 5. Hide loading screen
+    // 5. Hide loading screen and show app shell
     hideEl($('loading-screen'));
+    showEl($('app-shell'), 'grid'); // Utilisation de grid pour correspondre au CSS
   }
 
   // ─── Setup UI ───────────────────────────────────────────────────────────────
@@ -107,6 +107,13 @@ const App = (() => {
     $('user-email-display').textContent = currentUser.email;
     $('user-avatar-initials').textContent = emailShort.slice(0, 2).toUpperCase();
 
+    // ─── Global Add logic ───────────────────────────────────────────────────
+    function handleGlobalAdd() {
+      let defaultType = 'login';
+      if (currentFilter === 'note') defaultType = 'note';
+      openEditPane(null, defaultType);
+    }
+
     // Nav items
     document.querySelectorAll('.nav-item[data-filter]').forEach(item => {
       item.addEventListener('click', () => {
@@ -115,6 +122,22 @@ const App = (() => {
         currentFilter = item.dataset.filter;
         currentSearch = '';
         $('search-input').value = '';
+        hideEl($('top-bar-back'));
+        
+        const categoryNames = {
+          'all': 'Mon Coffre',
+          'favorites': 'Favoris',
+          'login': 'Identifiants',
+          'note': 'Notes sécurisées'
+        };
+        const titleText = categoryNames[currentFilter] || 'Mon Coffre';
+        $('top-bar-title').textContent = titleText;
+        
+        closeAllModals();
+        
+        // If clicking on a tab but top-bar-title is modified by closeAllModals, reset it!
+        $('top-bar-title').textContent = titleText;
+
         renderVault();
       });
     });
@@ -125,28 +148,43 @@ const App = (() => {
       renderVault();
     });
 
-    // Add item button
-    $('add-item-btn').addEventListener('click', () => openItemModal(null));
-    $('add-item-topbar').addEventListener('click', () => openItemModal(null));
+    // Add item buttons
+    const addDashboardBtn = $('add-item-dashboard');
+    if (addDashboardBtn) addDashboardBtn.addEventListener('click', handleGlobalAdd);
+    
+    const addTopbarBtn = $('add-item-topbar');
+    if (addTopbarBtn) addTopbarBtn.addEventListener('click', handleGlobalAdd);
 
-    // Logout
-    $('logout-btn').addEventListener('click', async () => {
-      try { await API.logout(); } catch {}
-      encryptionKey = null;
-      sessionStorage.clear();
-      window.location.href = '/';
+    const backBtn = $('top-bar-back');
+    if (backBtn) backBtn.addEventListener('click', closeAllModals);
+    const sidebarAddBtn = $('nav-add-item-sidebar');
+    if (sidebarAddBtn) sidebarAddBtn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      sidebarAddBtn.classList.add('active');
+      openEditPane(null);
     });
 
-    // Lock vault
-    $('lock-btn')?.addEventListener('click', () => lock('Coffre verrouillé manuellement.'));
+    // Standalone Generator button
+    $('open-generator').addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      $('open-generator').classList.add('active');
+      openGeneratorView();
+    });
+
+    // Lock vault (now calls full logout for simplicity)
+    $('lock-btn')?.addEventListener('click', window.handleLogout);
 
     // Modal close buttons
-    document.querySelectorAll('.modal-close, .modal-cancel').forEach(btn => {
-      btn.addEventListener('click', () => closeAllModals());
+    document.querySelectorAll('.modal-cancel, .modal-close').forEach(btn => {
+      btn.addEventListener('click', closeAllModals);
     });
+    
+    const cancelItemBtn = $('cancel-item-btn');
+    if (cancelItemBtn) cancelItemBtn.addEventListener('click', closeAllModals);
 
-    // Modal overlay click to close
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    ['delete-modal-overlay', 'gen-modal-overlay'].forEach(id => {
+      const overlay = $(id);
+      if (!overlay) return;
       overlay.addEventListener('click', (e) => {
         if (e.target === overlay) closeAllModals();
       });
@@ -155,12 +193,28 @@ const App = (() => {
     // Item form submission
     $('item-form').addEventListener('submit', saveItem);
 
-    // Password generator in modal
+    // Password generator in item form
     $('gen-password-btn').addEventListener('click', generateAndFill);
     $('gen-refresh-btn').addEventListener('click', generateAndFill);
     $('gen-length').addEventListener('input', (e) => {
       $('gen-length-val').textContent = e.target.value;
       generateAndFill();
+    });
+    ['gen-upper', 'gen-lower', 'gen-nums', 'gen-syms', 'gen-no-ambig'].forEach(id => {
+      $(id).addEventListener('change', generateAndFill);
+    });
+
+    // Tool Generator Events
+    $('tool-gen-refresh-btn').addEventListener('click', generateForTool);
+    $('tool-gen-length').addEventListener('input', (e) => {
+      $('tool-gen-length-val').textContent = e.target.value;
+      generateForTool();
+    });
+    ['tool-gen-upper', 'tool-gen-lower', 'tool-gen-nums', 'tool-gen-syms', 'tool-gen-no-ambig']
+      .forEach(id => $(id).addEventListener('change', generateForTool));
+
+    $('tool-gen-copy-btn').addEventListener('click', () => {
+      copyToClipboard($('tool-gen-password-preview').textContent, 'Mot de passe copié');
     });
 
     // Copy buttons in view modal
@@ -176,6 +230,10 @@ const App = (() => {
       const val = $('view-url-val').textContent;
       if (val && val !== '—') copyToClipboard(val, 'URL copiée');
     });
+    $('view-copy-notes').addEventListener('click', () => {
+      const val = $('view-notes-val').textContent;
+      if (val && val !== '—') copyToClipboard(val, 'Note copiée');
+    });
     $('view-toggle-pass').addEventListener('click', () => {
       const el = $('view-password-val');
       const raw = el.dataset.raw;
@@ -190,12 +248,11 @@ const App = (() => {
       lucide.createIcons();
     });
     $('view-edit-btn').addEventListener('click', () => {
-      const id = $('view-modal').dataset.itemId;
-      closeAllModals();
-      if (id) openItemModal(id);
+      const id = $('view-details').dataset.itemId;
+      openEditPane(id);
     });
     $('view-delete-btn').addEventListener('click', () => {
-      const id = $('view-modal').dataset.itemId;
+      const id = $('view-details').dataset.itemId;
       if (id) confirmDeleteItem(id);
     });
 
@@ -207,12 +264,46 @@ const App = (() => {
 
     // Password strength in item form
     $('item-password').addEventListener('input', (e) => {
-      const { score, label, color } = Crypto.checkPasswordStrength(e.target.value);
-      const pct = Math.min(100, (score / 9) * 100);
-      $('item-strength-fill').style.width = `${pct}%`;
-      $('item-strength-fill').style.background = color;
-      $('item-strength-label').textContent = e.target.value ? `${label}` : '';
-      $('item-strength-label').style.color = color;
+      const pwd = e.target.value;
+      const meter = $('item-strength-meter');
+      const segments = meter ? meter.querySelectorAll('.strength-segment') : [];
+      const labelEl = $('item-strength-label');
+      
+      if (!pwd) {
+         segments.forEach(s => s.className = 'strength-segment');
+         labelEl.textContent = '';
+         return;
+      }
+      
+      const { score, label } = Crypto.checkPasswordStrength(pwd);
+      
+      // Mapping out of 9 to 4 segments
+      // score <= 2 -> 1 segment (weak)
+      // score <= 4 -> 2 segments (weak/medium)
+      // score <= 6 -> 3 segments (medium)
+      // score >= 7 -> 4 segments (strong)
+      let activeCount = 0;
+      let strengthClass = '';
+      
+      if (score <= 2) { activeCount = 1; strengthClass = 'weak'; }
+      else if (score <= 4) { activeCount = 2; strengthClass = 'weak'; }
+      else if (score <= 6) { activeCount = 3; strengthClass = 'medium'; }
+      else { activeCount = 4; strengthClass = 'strong'; }
+
+      segments.forEach((s, idx) => {
+        s.className = 'strength-segment';
+        if (idx < activeCount) {
+          s.classList.add('active', strengthClass);
+        }
+      });
+      
+      labelEl.textContent = label;
+      
+      // Set label text color matching the active segments
+      if (strengthClass === 'weak') labelEl.style.color = '#EF4444';
+      else if (strengthClass === 'medium') labelEl.style.color = '#FBBF24';
+      else if (strengthClass === 'strong') labelEl.style.color = '#10B981';
+      else labelEl.style.color = 'inherit';
     });
 
     // Item type tabs
@@ -254,10 +345,22 @@ const App = (() => {
     }
   }
 
-  // ─── Render Vault ───────────────────────────────────────────────────────────
+    // ─── Render Vault ───────────────────────────────────────────────────────────
   function renderVault() {
-    const grid = $('vault-grid');
-    grid.innerHTML = '';
+    const list = $('vault-list');
+    const tableContainer = $('vault-table-container');
+    const emptyContainer = $('vault-empty-container');
+    
+    list.innerHTML = '';
+    
+    const wrapper = $('vault-dashboard-wrapper');
+    if (wrapper) {
+      if (currentFilter === 'all' && !currentSearch) {
+        showEl(wrapper, 'block');
+      } else {
+        hideEl(wrapper);
+      }
+    }
 
     let filtered = vaultItems.filter(item => {
       if (item.decryptionError) return true;
@@ -277,96 +380,325 @@ const App = (() => {
     updateNavBadges();
 
     if (filtered.length === 0) {
-      grid.innerHTML = `
-        <div class="empty-state" style="grid-column:1/-1">
+      hideEl(tableContainer);
+      emptyContainer.innerHTML = `
+        <div class="empty-state">
           <div class="empty-state-icon"><i data-lucide="shield-off" style="width:64px;height:64px"></i></div>
           <h3>${currentSearch ? 'Aucun résultat' : 'Coffre vide'}</h3>
           <p>${currentSearch ? `Aucun élément ne correspond à "${currentSearch}"` : 'Ajoutez votre premier élément sécurisé.'}</p>
-          ${!currentSearch ? `<button class="btn btn-primary" onclick="App.openItemModal(null)"><i data-lucide="plus" style="width:18px;margin-right:8px"></i> Ajouter un élément</button>` : ''}
+          ${!currentSearch ? `<button class="btn btn-primary" id="empty-add-btn" style="margin-top:1.5rem"><i data-lucide="plus" style="width:18px;margin-right:8px"></i> Ajouter un élément</button>` : ''}
         </div>
       `;
       lucide.createIcons();
+      const emptyAddBtn = document.getElementById('empty-add-btn');
+      if (emptyAddBtn) {
+        // Map current filter to a valid creation type
+        let defaultType = 'login';
+        if (currentFilter === 'note') defaultType = 'note';
+        
+        emptyAddBtn.addEventListener('click', () => openEditPane(null, defaultType));
+      }
       return;
     }
 
-    filtered.forEach(item => {
-      const card = createVaultCard(item);
-      grid.appendChild(card);
-    });
-  }
+    showEl(tableContainer, 'block');
+    emptyContainer.innerHTML = '';
 
-  function createVaultCard(item) {
-    const icons = { login: 'key', card: 'credit-card', note: 'sticky-note', identity: 'user' };
-    
-    const card = document.createElement('article');
-    card.className = 'vault-item fade-in';
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
-    card.dataset.id = item.id;
-
-    const strength = item.password ? Crypto.checkPasswordStrength(item.password) : null;
-    const strengthIndicator = strength && strength.score <= 4 
-      ? `<span style="color: #ef4444; font-size: 0.7rem; font-weight: 700; margin-left: 8px">Faible</span>`
-      : '';
-
-    card.innerHTML = `
-      <div style="display: flex; align-items: flex-start; gap: 1rem">
-        <div style="width: 40px; height: 40px; background: var(--bw-blue-nude); color: var(--bw-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0">
-          <i data-lucide="${icons[item.type] || 'key'}" style="width: 20px; height: 20px"></i>
-        </div>
-        <div style="flex: 1; min-width: 0">
-          <div style="font-weight: 700; font-size: 0.9375rem; margin-bottom: 0.125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 0.5rem">
-            ${escapeHtml(item.name || 'Sans titre')}
-            ${item.favorite ? '<i data-lucide="star" style="width:12px; height:12px; fill: #FBBF24; color: #FBBF24"></i>' : ''}
-          </div>
-          <div style="font-size: 0.8125rem; color: var(--bw-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
-            ${item.username ? escapeHtml(item.username) : (item.url ? escapeHtml(item.url) : 'Aucun identifiant')}
-            ${strengthIndicator}
-          </div>
-        </div>
-        <div style="display: flex; gap: 0.25rem">
-          <button class="btn btn-ghost btn-sm" style="padding: 0.4rem; border-radius: 6px" data-action="copy" title="Copier"><i data-lucide="copy" style="width:16px"></i></button>
-        </div>
-      </div>
-    `;
-
-    card.addEventListener('click', (e) => {
-      const action = e.target.closest('[data-action]')?.dataset.action;
-      if (action === 'copy') {
-        e.stopPropagation();
-        if (item.password) copyToClipboard(item.password, 'Mot de passe copié');
-        else showToast('Aucun mot de passe à copier.', 'info');
+    // Update table header based on filter
+    const thead = tableContainer.querySelector('thead');
+    if (thead) {
+      if (currentFilter === 'note') {
+        thead.innerHTML = `
+          <tr>
+            <th class="col-fav"></th>
+            <th class="col-icon"></th>
+            <th class="col-name">Nom</th>
+            <th class="col-notes">Notes</th>
+            <th class="col-updated">Modifié</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        `;
+      } else if (currentFilter === 'login') {
+        thead.innerHTML = `
+          <tr>
+            <th class="col-fav"></th>
+            <th class="col-icon"></th>
+            <th class="col-name">Nom</th>
+            <th class="col-user">Identifiant</th>
+            <th class="col-pass">Mot de passe</th>
+            <th class="col-updated">Modifié</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        `;
       } else {
-        openViewModal(item);
+        // Mon Coffre / Favoris
+        thead.innerHTML = `
+          <tr>
+            <th class="col-fav"></th>
+            <th class="col-icon"></th>
+            <th class="col-name">Nom</th>
+            <th class="col-user">Identifiant</th>
+            <th class="col-pass">Mot de passe</th>
+            <th class="col-notes">Notes</th>
+            <th class="col-updated">Modifié</th>
+            <th class="col-actions">Actions</th>
+          </tr>
+        `;
       }
-      lucide.createIcons();
+    }
+
+    filtered.forEach(item => {
+      const row = createVaultRow(item);
+      list.appendChild(row);
     });
 
-    card.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        openViewModal(item);
-      }
-    });
-
-    return card;
+    // CRITICAL: Draw icons for dynamically created cards
+    lucide.createIcons();
+    updateStats();
+    updateNavBadges();
   }
 
-  // ─── View Modal ─────────────────────────────────────────────────────────────
-  function openViewModal(item) {
-    $('view-modal').dataset.itemId = item.id;
-    $('view-item-name').textContent = item.name || 'Sans titre';
-    $('view-username-val').textContent = item.username || '—';
-    $('view-password-val').textContent = item.password ? '••••••••' : '—';
-    $('view-password-val').dataset.raw = item.password || '';
-    $('view-url-val').textContent = item.url || '—';
-    $('view-notes-val').textContent = item.notes || '—';
-    $('view-toggle-pass').style.display = item.password ? '' : 'none';
-    $('view-copy-pass').style.display = item.password ? '' : 'none';
+  function createVaultRow(item) {
+    const tr = document.createElement('tr');
+    tr.className = 'fade-in';
+    tr.setAttribute('role', 'button');
+    tr.onclick = () => openViewPane(item);
 
-    // Show/hide URL as link
+    // Column: Favorite
+    const tdFav = document.createElement('td');
+    tdFav.className = 'col-fav';
+    const favBtn = document.createElement('button');
+    favBtn.className = 'btn btn-icon btn-ghost fav-btn' + (item.favorite ? ' active' : '');
+    favBtn.innerHTML = `<i data-lucide="star" style="width:18px; height:18px; ${item.favorite ? 'fill: var(--bw-primary);' : ''}"></i>`;
+    favBtn.title = item.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris';
+    favBtn.onclick = async (e) => {
+      e.stopPropagation();
+      await toggleFavorite(item);
+    };
+    tdFav.appendChild(favBtn);
+    tr.appendChild(tdFav);
+
+    // Column: Icon
+    const tdIcon = document.createElement('td');
+    tdIcon.className = 'col-icon';
+    let iconName = 'key';
+    if (item.type === 'login') iconName = 'globe';
+    if (item.type === 'note') iconName = 'sticky-note';
+    tdIcon.innerHTML = `<div class="table-icon-wrapper"><i data-lucide="${iconName}" style="width:16px; height:16px"></i></div>`;
+    tr.appendChild(tdIcon);
+
+    // Column: Name
+    const tdName = document.createElement('td');
+    tdName.className = 'col-name';
+    tdName.textContent = item.name || 'Sans titre';
+    tr.appendChild(tdName);
+
+    const showLoginCols = currentFilter !== 'note';
+    const showNoteCol  = currentFilter !== 'login';
+
+    if (showLoginCols) {
+      // Column: User/Identifier
+      const tdUser = document.createElement('td');
+      tdUser.className = 'col-user';
+      tdUser.textContent = item.username || '—';
+      tr.appendChild(tdUser);
+
+      // Column: Password
+      const tdPass = document.createElement('td');
+      tdPass.className = 'col-pass';
+      if (item.password && item.type === 'login') {
+        const passGroup = document.createElement('div');
+        passGroup.className = 'table-pass-group';
+        
+        const passVal = document.createElement('span');
+        passVal.className = 'table-pass-val';
+        passVal.textContent = '••••••••';
+        
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn-icon btn-ghost btn-sm';
+        toggleBtn.innerHTML = '<i data-lucide="eye" style="width:14px"></i>';
+        toggleBtn.onclick = (e) => {
+          e.stopPropagation();
+          const isHidden = passVal.textContent === '••••••••';
+          passVal.textContent = isHidden ? item.password : '••••••••';
+          toggleBtn.innerHTML = `<i data-lucide="${isHidden ? 'eye-off' : 'eye'}" style="width:14px"></i>`;
+          lucide.createIcons();
+        };
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'btn btn-icon btn-ghost btn-sm';
+        copyBtn.innerHTML = '<i data-lucide="copy" style="width:14px"></i>';
+        copyBtn.onclick = (e) => {
+          e.stopPropagation();
+          copyToClipboard(item.password, 'Mot de passe copié');
+        };
+
+        passGroup.appendChild(passVal);
+        passGroup.appendChild(toggleBtn);
+        passGroup.appendChild(copyBtn);
+        tdPass.appendChild(passGroup);
+      } else {
+        tdPass.textContent = '—';
+      }
+      tr.appendChild(tdPass);
+    }
+
+    if (showNoteCol) {
+      // Column: Masked Notes
+      const tdNotes = document.createElement('td');
+      tdNotes.className = 'col-notes';
+      if (item.notes) {
+        const noteGroup = document.createElement('div');
+        noteGroup.className = 'table-pass-group';
+        
+        const noteVal = document.createElement('span');
+        noteVal.className = 'table-pass-val';
+        noteVal.textContent = '••••••••';
+        noteVal.style.fontSize = '0.8125rem';
+        noteVal.style.color = 'var(--bw-text-muted)';
+        
+        const previewText = item.notes.replace(/\n/g, ' ');
+        
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn-icon btn-ghost btn-sm';
+        toggleBtn.innerHTML = '<i data-lucide="eye" style="width:14px"></i>';
+        toggleBtn.onclick = (e) => {
+          e.stopPropagation();
+          const isHidden = noteVal.textContent === '••••••••';
+          noteVal.textContent = isHidden ? (previewText.length > 50 ? previewText.substring(0, 50) + '...' : previewText) : '••••••••';
+          toggleBtn.innerHTML = `<i data-lucide="${isHidden ? 'eye-off' : 'eye'}" style="width:14px"></i>`;
+          lucide.createIcons();
+        };
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'btn btn-icon btn-ghost btn-sm';
+        copyBtn.innerHTML = '<i data-lucide="copy" style="width:14px"></i>';
+        copyBtn.onclick = (e) => {
+          e.stopPropagation();
+          copyToClipboard(item.notes, 'Note copiée');
+        };
+
+        noteGroup.appendChild(noteVal);
+        noteGroup.appendChild(toggleBtn);
+        noteGroup.appendChild(copyBtn);
+        tdNotes.appendChild(noteGroup);
+      } else {
+        tdNotes.textContent = '—';
+      }
+      tr.appendChild(tdNotes);
+    }
+
+    // Column: Date
+    const tdDate = document.createElement('td');
+    tdDate.className = 'col-updated';
+    tdDate.textContent = formatDate(item.updated_at);
+    tr.appendChild(tdDate);
+
+    // Column: Actions
+    const tdActions = document.createElement('td');
+    tdActions.className = 'col-actions';
+    const actions = document.createElement('div');
+    actions.className = 'item-actions';
+    
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn btn-icon btn-ghost';
+    editBtn.style.color = 'var(--bw-primary)';
+    editBtn.title = 'Modifier';
+    editBtn.innerHTML = '<i data-lucide="edit-3" style="width:16px"></i>';
+    editBtn.onclick = (e) => { e.stopPropagation(); openEditPane(item.id); };
+    
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-icon btn-ghost';
+    delBtn.style.color = '#EF4444';
+    delBtn.title = 'Supprimer';
+    delBtn.innerHTML = '<i data-lucide="trash-2" style="width:16px"></i>';
+    delBtn.onclick = (e) => { e.stopPropagation(); confirmDeleteItem(item.id); };
+    
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    tdActions.appendChild(actions);
+    tr.appendChild(tdActions);
+
+    return tr;
+  }
+
+  async function toggleFavorite(item) {
+    const originalStatus = item.favorite;
+    const newStatus = !originalStatus;
+
+    try {
+      // Direct local update for immediate UI feedback
+      item.favorite = newStatus;
+      const vaultItem = vaultItems.find(v => v.id === item.id);
+      if (vaultItem) {
+        vaultItem.favorite = newStatus;
+      }
+      
+      renderVault();
+
+      // We need to send ALL encrypted fields because the backend PUT /api/vault/:id 
+      // requires them (validation). Our crypto.js now ensures these are in the object.
+      await API.updateItem(item.id, {
+        type: item.type,
+        name_enc: item.name_enc,
+        data_enc: item.data_enc,
+        iv: item.iv,
+        auth_tag: item.auth_tag,
+        favorite: newStatus,
+        folder_id: item.folder_id
+      });
+      
+      showToast(newStatus ? 'Ajouté aux favoris' : 'Retiré des favoris', 'info');
+    } catch (err) {
+      // Revert on failure
+      item.favorite = originalStatus;
+      const vaultItem = vaultItems.find(v => v.id === item.id);
+      if (vaultItem) {
+        vaultItem.favorite = originalStatus;
+      }
+      renderVault();
+      
+      console.error('Error toggling favorite:', err);
+      showToast('Erreur lors de la mise à jour du favori', 'error');
+    }
+  }
+
+  // ─── Details Pane: View Element ─────────────────────────────────────────────
+  function openViewPane(item) {
+    hideEl($('view-vault'));
+    hideEl($('view-editor'));
+    showEl($('top-bar-back'), 'flex');
+    
+    $('view-details').dataset.itemId = item.id;
+    $('view-item-name').textContent = item.name || 'Sans titre';
+    
+    // Default labels
+    const userLabel = $('view-username-val').previousElementSibling;
+    const passField = $('view-password-val').parentElement;
+    const urlField  = $('view-url-val').parentElement;
+    
+    if (userLabel) userLabel.textContent = 'Identifiant';
+    showEl(passField, 'flex');
+    showEl(urlField, 'flex');
+
+    if (item.type === 'note') {
+      hideEl($('view-username-val').parentElement);
+      hideEl(passField);
+      hideEl(urlField);
+    } else {
+      showEl($('view-username-val').parentElement, 'flex');
+      $('view-username-val').textContent = item.username || '—';
+      $('view-password-val').textContent = item.password ? '••••••••' : '—';
+      $('view-password-val').dataset.raw = item.password || '';
+      $('view-toggle-pass').style.display = item.password ? '' : 'none';
+      $('view-copy-pass').style.display = item.password ? '' : 'none';
+    }
+
+    $('view-notes-val').textContent = item.notes || '—';
+
+    // Show/hide URL as link logic
     const urlEl = $('view-url-val');
-    if (item.url) {
+    if (item.url && item.type === 'login') {
       const a = document.createElement('a');
       a.href = item.url.startsWith('http') ? item.url : `https://${item.url}`;
       a.target = '_blank';
@@ -374,27 +706,37 @@ const App = (() => {
       a.textContent = item.url;
       urlEl.textContent = '';
       urlEl.appendChild(a);
+      showEl(urlField, 'flex');
+    } else if (item.type !== 'login') {
+      hideEl(urlField);
     } else {
       urlEl.textContent = '—';
     }
 
-    const overlay = $('view-modal-overlay');
-    showEl(overlay, 'flex');
+    $('top-bar-title').textContent = 'Détails de l\'élément';
+    showEl($('view-details'), 'block');
   }
 
-  // ─── Item Modal (Create / Edit) ──────────────────────────────────────────────
-  function openItemModal(itemId) {
+  // ─── Details Pane: Create / Edit Element ──────────────────────────────────────
+  function openEditPane(itemId, forcedType = null) {
     editingItemId = itemId;
     const item = itemId ? vaultItems.find(v => v.id === itemId) : null;
+    
+    hideEl($('view-vault'));
+    hideEl($('view-details'));
+    showEl($('top-bar-back'), 'flex');
 
-    $('item-modal-title').textContent = item ? 'Modifier l\'élément' : 'Nouvel élément';
+    $('top-bar-title').textContent = item ? 'Modifier l\'élément' : 'Nouvel élément';
     $('item-form').reset();
-    $('item-strength-fill').style.width = '0%';
+    
+    // Reset strength meter
+    const meter = $('item-strength-meter');
+    if (meter) meter.querySelectorAll('.strength-segment').forEach(s => s.className = 'strength-segment');
     $('item-strength-label').textContent = '';
 
     // Reset tabs
     document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
-    const defaultType = item?.type || 'login';
+    const defaultType = item ? item.type : (forcedType || 'login');
     document.querySelector(`.type-tab[data-type="${defaultType}"]`)?.classList.add('active');
     updateFormForType(defaultType);
 
@@ -405,44 +747,103 @@ const App = (() => {
       $('item-url').value = item.url || '';
       $('item-notes').value = item.notes || '';
       $('item-favorite').checked = item.favorite || false;
-
+      
+      // Trigger password strength logic if password exists
       if (item.password) {
-        const { score, label, color } = Crypto.checkPasswordStrength(item.password);
-        const pct = Math.min(100, (score / 9) * 100);
-        $('item-strength-fill').style.width = `${pct}%`;
-        $('item-strength-fill').style.background = color;
-        $('item-strength-label').textContent = label;
-        $('item-strength-label').style.color = color;
+        $('item-password').dispatchEvent(new Event('input', { bubbles: true }));
       }
     }
 
     // Generate a password suggestion for new items
     if (!item) {
-      generateAndFill();
+      try {
+        generateAndFill();
+      } catch (e) {
+        console.warn("Pré-génération échouée", e);
+      }
     }
 
-    lucide.createIcons();
-    showEl($('item-modal-overlay'), 'flex');
+    try { lucide.createIcons(); } catch(e) {}
+    showEl($('view-editor'), 'block');
+    // Scroll au sommet pour être sûr de voir le formulaire
+    $('view-editor').scrollTop = 0;
   }
 
   function updateFormForType(type) {
-    const loginFields = $('login-fields');
-    const cardFields  = $('card-fields');
-    if (type === 'login' || type === 'note' || type === 'identity') {
-      showEl(loginFields);
-      hideEl(cardFields);
-    } else if (type === 'card') {
-      hideEl(loginFields);
-      showEl(cardFields);
+    const loginFields    = document.querySelectorAll('.login-only-fields');
+    const identityFields = document.querySelectorAll('.identity-only-fields');
+    const grid = $('item-form-grid');
+    
+    // Default: hide everything
+    loginFields.forEach(el => hideEl(el));
+    identityFields.forEach(el => hideEl(el));
+
+    if (type === 'login') {
+      loginFields.forEach(el => { showEl(el, 'flex'); el.style.flexDirection = 'column'; });
+      if (grid) {
+        grid.style.gridTemplateColumns = '1fr 1fr';
+        grid.style.gap = '4rem';
+        grid.style.maxWidth = 'none';
+        grid.style.margin = '0';
+        $('item-notes').rows = 2;
+      }
+    } else if (type === 'note') {
+      if (grid) {
+        grid.style.gridTemplateColumns = '1fr';
+        grid.style.gap = '0.25rem';
+        grid.style.maxWidth = '800px';
+        grid.style.margin = '0 auto';
+        $('item-notes').rows = 8;
+      }
     }
   }
 
   function closeAllModals() {
-    ['view-modal-overlay', 'item-modal-overlay', 'delete-modal-overlay', 'gen-modal-overlay'].forEach(id => {
+    ['delete-modal-overlay'].forEach(id => {
       const el = $(id);
       if (el) hideEl(el);
     });
+    
+    hideEl($('view-details'));
+    hideEl($('view-editor'));
+    hideEl($('view-generator'));
+    hideEl($('top-bar-back'));
+    $('top-bar-title').textContent = 'Mon Coffre';
+    showEl($('view-vault'), 'block');
+
+    // Remettre le badge actif sur "Tous les éléments" si on sort d'un ajout
+    const allTab = document.querySelector('.nav-item[data-filter="all"]');
+    if (allTab && !document.querySelector('.nav-item.active')) {
+      allTab.classList.add('active');
+    }
+
     editingItemId = null;
+  }
+
+  function openGeneratorView() {
+    hideEl($('view-vault'));
+    hideEl($('view-details'));
+    hideEl($('view-editor'));
+    $('top-bar-title').textContent = 'Générateur de mot de passe';
+    showEl($('view-generator'), 'block');
+    generateForTool();
+  }
+
+  function generateForTool() {
+    const opts = {
+      length: parseInt($('tool-gen-length').value, 10),
+      uppercase: $('tool-gen-upper').checked,
+      lowercase: $('tool-gen-lower').checked,
+      numbers: $('tool-gen-nums').checked,
+      symbols: $('tool-gen-syms').checked,
+      excludeAmbiguous: $('tool-gen-no-ambig').checked,
+    };
+    try {
+      const pwd = Crypto.generatePassword(opts);
+      $('tool-gen-password-preview').textContent = pwd;
+    } catch (err) {
+      showToast(err.message, 'warning');
+    }
   }
 
   // ─── Save Item ───────────────────────────────────────────────────────────────
@@ -462,6 +863,11 @@ const App = (() => {
       url: $('item-url')?.value.trim() || '',
       notes: $('item-notes')?.value.trim() || '',
       favorite: $('item-favorite')?.checked || false,
+      // Identity fields
+      firstName: $('item-first-name')?.value.trim() || '',
+      lastName: $('item-last-name')?.value.trim() || '',
+      email: $('item-identity-email')?.value.trim() || '',
+      phone: $('item-phone')?.value.trim() || '',
     };
 
     if (!plainItem.name) {
@@ -478,11 +884,11 @@ const App = (() => {
       if (editingItemId) {
         await API.updateItem(editingItemId, encrypted);
         const idx = vaultItems.findIndex(v => v.id === editingItemId);
-        if (idx !== -1) vaultItems[idx] = { id: editingItemId, ...plainItem };
+        if (idx !== -1) vaultItems[idx] = { id: editingItemId, ...plainItem, ...encrypted };
         showToast('Élément mis à jour.', 'success');
       } else {
         const result = await API.createItem(encrypted);
-        vaultItems.unshift({ id: result.id, ...plainItem, created_at: Date.now(), updated_at: Date.now() });
+        vaultItems.unshift({ id: result.id, ...plainItem, ...encrypted, created_at: Date.now(), updated_at: Date.now() });
         showToast('Élément ajouté au coffre.', 'success');
       }
 
@@ -555,14 +961,16 @@ const App = (() => {
   function updateStats() {
     $('stat-total').textContent   = vaultItems.length;
     $('stat-logins').textContent  = vaultItems.filter(v => v.type === 'login').length;
+    $('stat-notes').textContent   = vaultItems.filter(v => v.type === 'note').length;
     $('stat-weak').textContent    = vaultItems.filter(v => v.password && Crypto.checkPasswordStrength(v.password).score <= 4).length;
     $('stat-favs').textContent    = vaultItems.filter(v => v.favorite).length;
   }
 
   function updateNavBadges() {
-    const total = vaultItems.length;
-    const badge = document.querySelector('.nav-item[data-filter="all"] .nav-badge');
-    if (badge) badge.textContent = total;
+    if ($('badge-all')) $('badge-all').textContent = vaultItems.length;
+    if ($('badge-favorites')) $('badge-favorites').textContent = vaultItems.filter(i => i.favorite).length;
+    if ($('badge-login')) $('badge-login').textContent = vaultItems.filter(i => i.type === 'login').length;
+    if ($('badge-note')) $('badge-note').textContent = vaultItems.filter(i => i.type === 'note').length;
   }
 
   // ─── Utilities ───────────────────────────────────────────────────────────────
@@ -601,15 +1009,43 @@ const App = (() => {
   // ─── Public Interface ────────────────────────────────────────────────────────
   return {
     init,
-    openItemModal,
-    openViewModal,
+    openEditPane,
+    openViewPane,
     copyToClipboard,
     generateAndFill,
   };
 })();
 
+// Global handleLogout accessible from app.html inline onclick
+window.handleLogout = async (e) => {
+  if (e) e.preventDefault();
+  console.log('--- GLOBAL LOGOUT START ---');
+  
+  try {
+    // We use direct fetch to be safe from any object naming issues
+    const res = await fetch('/api/auth/logout', { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    console.log('Server response status:', res.status);
+  } catch (err) {
+    console.error('Network error during logout:', err);
+  }
+  
+  // Always clear local state even if server fetch failed
+  sessionStorage.clear();
+  console.log('SessionStorage cleared');
+  
+  // Use replace to ensure index.html doesn't find old session in cache
+  window.location.replace('/index.html?t=' + Date.now());
+};
+
 // Start app
 document.addEventListener('DOMContentLoaded', () => {
     App.init();
     lucide.createIcons();
+    
+    // Also attach to the button if it exists (backup)
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) logoutBtn.addEventListener('click', window.handleLogout);
 });

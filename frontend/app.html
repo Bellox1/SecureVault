@@ -25,12 +25,12 @@
 
   <!-- ─── Sidebar ─────────────────────────────────────────────────────────── -->
   <aside class="sidebar" role="navigation" aria-label="Navigation principale">
-    <div class="sidebar-header">
+    <a href="/index.html" class="sidebar-header" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem;">
       <div class="sidebar-logo"><i data-lucide="shield-check"></i></div>
       <div class="sidebar-brand">
         <span>SecureVault</span>
       </div>
-    </div>
+    </a>
 
     <div class="sidebar-search">
       <input type="search" id="search-input" class="sidebar-search-input"
@@ -49,6 +49,12 @@
       <div class="nav-item" data-filter="favorites" role="button" tabindex="0">
         <span class="nav-icon"><i data-lucide="star"></i></span>
         <span>Favoris</span>
+        <span class="nav-badge" id="badge-favorites">0</span>
+      </div>
+
+      <div class="nav-item" id="nav-add-item-sidebar" role="button" tabindex="0">
+        <span class="nav-icon"><i data-lucide="plus-circle"></i></span>
+        <span>Nouvel élément</span>
       </div>
 
       <p class="nav-section-label">Catégories</p>
@@ -56,21 +62,13 @@
       <div class="nav-item" data-filter="login" role="button" tabindex="0">
         <span class="nav-icon"><i data-lucide="key"></i></span>
         <span>Identifiants</span>
-      </div>
-
-      <div class="nav-item" data-filter="card" role="button" tabindex="0">
-        <span class="nav-icon"><i data-lucide="credit-card"></i></span>
-        <span>Cartes bancaires</span>
+        <span class="nav-badge" id="badge-login">0</span>
       </div>
 
       <div class="nav-item" data-filter="note" role="button" tabindex="0">
         <span class="nav-icon"><i data-lucide="sticky-note"></i></span>
         <span>Notes sécurisées</span>
-      </div>
-
-      <div class="nav-item" data-filter="identity" role="button" tabindex="0">
-        <span class="nav-icon"><i data-lucide="user"></i></span>
-        <span>Identités</span>
+        <span class="nav-badge" id="badge-note">0</span>
       </div>
 
       <p class="nav-section-label">Outils</p>
@@ -92,14 +90,19 @@
         <div class="user-email" id="user-email-display" style="font-size: 0.8125rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">—</div>
         <div class="user-plan" style="font-size: 0.75rem; color: var(--bw-text-muted)">Zero-Knowledge</div>
       </div>
-      <button class="btn btn-ghost btn-sm" id="logout-btn" title="Se déconnecter" style="padding: 0.5rem"><i data-lucide="log-out" style="width: 18px"></i></button>
+      <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="handleLogout(event)" title="Se déconnecter" style="padding: 0.5rem"><i data-lucide="log-out" style="width: 18px"></i></button>
     </div>
   </aside>
 
   <!-- ─── Main ──────────────────────────────────────────────────────────────── -->
   <section class="main-content" role="main">
     <header class="top-bar">
-      <h1 style="font-size: 1.5rem">Mon Coffre</h1>
+      <div style="display: flex; align-items: center; gap: 1rem">
+        <button class="btn btn-ghost btn-sm" id="top-bar-back" style="display: none; padding: 0.5rem; border-radius: 50%" title="Retour">
+          <i data-lucide="arrow-left" style="width:20px; height:20px"></i>
+        </button>
+        <h1 style="font-size: 1.5rem" id="top-bar-title">Mon Coffre</h1>
+      </div>
       <div class="top-bar-actions">
         <button class="btn btn-primary btn-sm" id="add-item-topbar">
           <i data-lucide="plus" style="width:16px"></i> Ajouter un élément
@@ -107,29 +110,36 @@
       </div>
     </header>
 
-    <div class="content-area">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value" id="stat-total">—</div>
-          <div class="stat-label">Éléments total</div>
+    <!-- VIEW: VAULT -->
+    <div class="content-area" id="view-vault">
+      <div id="vault-dashboard-wrapper">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-label">Éléments total</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-logins">—</div>
+            <div class="stat-label">Identifiants</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-notes">—</div>
+            <div class="stat-label">Notes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-favs">—</div>
+            <div class="stat-label">Favoris</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="stat-weak" style="color: #ef4444">—</div>
+            <div class="stat-label">Mots de passe faibles</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-logins">—</div>
-          <div class="stat-label">Identifiants</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-weak" style="color: #ef4444">—</div>
-          <div class="stat-label">Mots de passe faibles</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-favs">—</div>
-          <div class="stat-label">Favoris</div>
-        </div>
-      </div>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem">
-        <h2 style="font-size: 1.25rem">Éléments récents</h2>
-        <button class="btn btn-outline btn-sm" id="add-item-btn"><i data-lucide="plus" style="width:16px"></i> Nouveau</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem">
+          <h2 style="font-size: 1.25rem">Éléments récents</h2>
+          <button class="btn btn-outline btn-sm" id="add-item-dashboard"><i data-lucide="plus" style="width:16px"></i> Nouveau</button>
+        </div>
       </div>
 
       <div id="vault-loading" style="text-align:center; padding: 4rem; color: var(--bw-text-muted)">
@@ -137,7 +147,227 @@
         <p>Accès sécurisé en cours...</p>
       </div>
 
-      <div class="vault-grid" id="vault-grid"></div>
+      <div class="vault-table-wrapper" id="vault-table-container">
+        <table class="vault-table">
+          <thead>
+            <tr>
+              <th class="col-fav"></th>
+              <th class="col-icon"></th>
+              <th class="col-name">Nom</th>
+              <th class="col-user">Identifiant</th>
+              <th class="col-pass">Mot de passe</th>
+              <th class="col-updated">Modifié</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="vault-list"></tbody>
+        </table>
+      </div>
+      <div id="vault-empty-container"></div>
+    </div>
+
+    <!-- VIEW: ITEM DETAILS -->
+    <div class="content-area" id="view-details" style="display:none; padding: 2rem;">
+      <div class="view-container">
+        <div class="view-header">
+          <h2 class="modal-title" id="view-item-name" style="font-size:1.5rem; word-break:break-all; font-weight:700;">Élément</h2>
+        </div>
+        <div class="details-body" style="padding: 0;">
+          <div class="detail-field">
+            <div class="detail-field-label">Identifiant</div>
+            <div class="detail-field-value" id="view-username-val">—</div>
+            <div class="detail-field-actions">
+              <button class="btn btn-icon btn-ghost" id="view-copy-user" title="Copier l'identifiant"><i data-lucide="copy"></i></button>
+            </div>
+          </div>
+
+          <div class="detail-field">
+            <div class="detail-field-label">Mot de passe</div>
+            <div class="detail-field-value mono" id="view-password-val" data-raw="">••••••••</div>
+            <div class="detail-field-actions">
+              <button class="btn btn-icon btn-ghost" id="view-toggle-pass" title="Afficher"><i data-lucide="eye"></i></button>
+              <button class="btn btn-icon btn-ghost" id="view-copy-pass" title="Copier"><i data-lucide="copy"></i></button>
+            </div>
+          </div>
+
+          <div class="detail-field">
+            <div class="detail-field-label">URL</div>
+            <div class="detail-field-value" id="view-url-val">—</div>
+            <div class="detail-field-actions">
+              <button class="btn btn-icon btn-ghost" id="view-copy-url" title="Copier l'URL"><i data-lucide="external-link"></i></button>
+            </div>
+          </div>
+
+          <div class="detail-field" style="align-items:flex-start">
+            <div class="detail-field-label" style="padding-top:0.75rem">Notes</div>
+            <div class="detail-field-value" id="view-notes-val" style="white-space:pre-wrap">—</div>
+            <div class="detail-field-actions" style="padding-top:0.5rem">
+              <button class="btn btn-icon btn-ghost" id="view-copy-notes" title="Copier les notes"><i data-lucide="copy"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="view-footer">
+          <button class="btn btn-danger btn-sm" id="view-delete-btn"><i data-lucide="trash-2" style="width:16px; margin-right:8px;"></i> Supprimer</button>
+          <button class="btn btn-secondary" id="view-edit-btn"><i data-lucide="edit-3" style="width:16px; margin-right: 8px"></i> Modifier l'élément</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: ITEM EDITOR -->
+    <div class="content-area" id="view-editor" style="display:none; padding: 2rem;">
+      <div class="view-container">
+
+        <div class="details-body" style="padding: 0;">
+
+          <form id="item-form" novalidate autocomplete="off">
+            <!-- TYPE SELECTION (Full width, on top) -->
+            <div style="margin-bottom: 2.5rem; border-bottom: 1px solid var(--bw-border); padding-bottom: 1.5rem;">
+              <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--bw-text-primary);">Type d'élément</h3>
+              <div class="type-tabs" role="tablist" aria-label="Type d'élément" style="display: flex; gap: 1rem;">
+                <button type="button" class="type-tab active" data-type="login" role="tab" aria-selected="true" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem 1rem;"><i data-lucide="key" style="width:16px"></i> Identifiant</button>
+                <button type="button" class="type-tab" data-type="note" role="tab" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.75rem 1rem;"><i data-lucide="sticky-note" style="width:16px"></i> Note</button>
+              </div>
+            </div>
+
+            <div id="item-form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start;">
+              
+              <!-- LEFT COLUMN -->
+              <div style="flex: 1; min-width: 320px; display: flex; flex-direction: column;">
+                <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--bw-text-muted); margin-bottom: 1.5rem; font-weight: 800;">Informations de base</h3>
+
+                <div class="form-group">
+                  <label class="form-label" for="item-name">Nom *</label>
+                  <input type="text" id="item-name" class="form-control" placeholder="Ex: Google, Netflix..." required maxlength="500">
+                </div>
+
+                <!-- LEFT COLUMN: Login Fields -->
+                <div class="login-only-fields">
+                  <div class="form-group">
+                    <label class="form-label" for="item-username">Identifiant / Email</label>
+                    <div class="input-with-icon">
+                      <span class="input-icon"><i data-lucide="user" style="width:14px"></i></span>
+                      <input type="text" id="item-username" class="form-control" placeholder="utilisateur@exemple.com" autocomplete="off">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="item-password">Mot de passe</label>
+                    <div class="input-with-icon">
+                      <span class="input-icon"><i data-lucide="lock" style="width:14px"></i></span>
+                      <input type="password" id="item-password" class="form-control" placeholder="Mot de passe" autocomplete="new-password">
+                      <button type="button" class="input-toggle-btn" id="toggle-item-pass" aria-label="Afficher"><i data-lucide="eye"></i></button>
+                    </div>
+                    <div class="strength-meter" id="item-strength-meter">
+                      <div class="strength-segment"></div>
+                      <div class="strength-segment"></div>
+                      <div class="strength-segment"></div>
+                      <div class="strength-segment"></div>
+                    </div>
+                    <span class="strength-label" id="item-strength-label"></span>
+                  </div>
+                </div>
+
+
+
+                <!-- LEFT COLUMN: Universal Fields -->
+                <div class="form-group">
+                  <label class="form-label" for="item-notes">Notes</label>
+                  <textarea id="item-notes" class="form-control" placeholder="Notes privées chiffrées..." rows="2" maxlength="10000"></textarea>
+                </div>
+              </div>
+
+              <!-- RIGHT COLUMN -->
+              <div style="flex: 1; min-width: 320px; display: flex; flex-direction: column;">
+                
+                <!-- RIGHT COLUMN: Login Fields (Generator) -->
+                <div class="login-only-fields" style="display: flex; flex-direction: column; flex: 1;">
+                  <h3 style="font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--bw-text-muted); margin-bottom: 1rem; font-weight: 800;">Options de sécurité</h3>
+                  <div class="form-group">
+                    <label class="form-label" for="item-url">URL / Site web</label>
+                    <div class="input-with-icon">
+                      <span class="input-icon"><i data-lucide="globe" style="width:14px"></i></span>
+                      <input type="url" id="item-url" class="form-control" placeholder="https://exemple.com" autocomplete="off">
+                    </div>
+                  </div>
+                  <div style="margin-bottom:1.5rem; border: 1px solid var(--bw-border); padding: 1.5rem; border-radius: var(--radius-md); background: #fafafa; flex: 1;">
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem">
+                      <span style="font-size:0.875rem;color:var(--text-muted);flex:1; font-weight: 700;">Générateur de mot de passe</span>
+                      <button type="button" class="btn btn-ghost btn-sm" id="gen-refresh-btn" style="padding: 0.5rem"><i data-lucide="refresh-cw" style="width:16px"></i></button>
+                      <button type="button" class="btn btn-outline btn-sm" id="gen-password-btn" style="padding: 0.35rem 0.75rem">Utiliser</button>
+                    </div>
+                    <div class="gen-password-display" style="margin-bottom: 1rem; background: white; padding: 1rem; border: 1px solid var(--bw-border); border-radius: var(--radius-sm);">
+                      <span class="gen-password-text mono" id="gen-password-preview" style="font-size: 1rem;">—</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:1rem;margin-top:0.5rem">
+                      <label style="font-size:0.875rem;color:var(--text-muted);white-space:nowrap; font-weight:600">Longueur: <span id="gen-length-val">20</span></label>
+                      <input type="range" id="gen-length" class="length-slider" min="8" max="64" value="20" style="flex:1">
+                    </div>
+                    <div class="gen-options" style="margin-top:1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                      <label class="gen-option"><input type="checkbox" id="gen-upper" checked> Majuscules</label>
+                      <label class="gen-option"><input type="checkbox" id="gen-lower" checked> Minuscules</label>
+                      <label class="gen-option"><input type="checkbox" id="gen-nums" checked> Chiffres</label>
+                      <label class="gen-option"><input type="checkbox" id="gen-syms" checked> Symboles</label>
+                      <label class="gen-option" style="grid-column: 1/-1;"><input type="checkbox" id="gen-no-ambig" checked> Caractères sans ambiguïté</label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- RIGHT COLUMN: Universal Fields -->
+                <div class="toggle-group">
+                  <div class="toggle-label"><i data-lucide="star"></i> Ajouter aux favoris</div>
+                  <label class="toggle">
+                    <input type="checkbox" id="item-favorite">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                
+
+
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="view-footer">
+          <button type="button" class="btn btn-ghost" id="cancel-item-btn">Annuler</button>
+          <button type="submit" form="item-form" class="btn btn-primary" id="save-item-btn">
+            <span class="btn-text" style="display:flex;align-items:center;gap:0.5rem;justify-content:center;"><i data-lucide="save" style="width:18px"></i> Enregistrer</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: GENERATOR -->
+    <div class="content-area" id="view-generator" style="display:none; padding: 2rem;">
+      <div class="view-container">
+
+        <div class="details-body" style="padding: 0;">
+          <div style="border: 1px dashed var(--bw-border); padding: 2rem; border-radius: var(--radius-lg); background: #fafafa;">
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.5rem">
+              <span style="font-size:1rem;color:var(--text-primary);flex:1; font-weight: 700;">Générer un mot de passe sécurisé</span>
+              <button type="button" class="btn btn-ghost" id="tool-gen-refresh-btn" style="padding: 0.5rem"><i data-lucide="refresh-cw" style="width:18px"></i></button>
+            </div>
+            <div class="gen-password-display" style="margin-bottom: 1.5rem; background: white; padding: 1.5rem; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--bw-border);">
+              <span class="gen-password-text mono" id="tool-gen-password-preview" style="font-size: 1.5rem; word-break: break-all;">—</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:1.5rem;margin-top:1rem; margin-bottom: 2rem;">
+              <label style="font-size:1rem;color:var(--text-muted);white-space:nowrap; font-weight:600">Longueur: <span id="tool-gen-length-val">20</span></label>
+              <input type="range" id="tool-gen-length" class="length-slider" min="8" max="64" value="20" style="flex:1">
+            </div>
+            <div class="gen-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <label class="gen-option" style="font-size: 1rem;"><input type="checkbox" id="tool-gen-upper" checked> Majuscules</label>
+              <label class="gen-option" style="font-size: 1rem;"><input type="checkbox" id="tool-gen-lower" checked> Minuscules</label>
+              <label class="gen-option" style="font-size: 1rem;"><input type="checkbox" id="tool-gen-nums" checked> Chiffres</label>
+              <label class="gen-option" style="font-size: 1rem;"><input type="checkbox" id="tool-gen-syms" checked> Symboles</label>
+              <label class="gen-option" style="grid-column: 1/-1; font-size: 1rem;"><input type="checkbox" id="tool-gen-no-ambig" checked> Caractères sans ambiguïté</label>
+            </div>
+          </div>
+        </div>
+        <div class="view-footer">
+          <button type="button" class="btn btn-primary" id="tool-gen-copy-btn">
+            <span class="btn-text" style="display:flex;align-items:center;gap:0.5rem;justify-content:center;"><i data-lucide="copy" style="width:18px"></i> Copier</span>
+          </button>
+        </div>
+      </div>
     </div>
   </section>
 </div>
@@ -146,182 +376,7 @@
      MODALS
 ════════════════════════════════════════════════════════════════════════════ -->
 
-<!-- ─── View Item Modal ─────────────────────────────────────────────────────── -->
-<div class="modal-overlay" id="view-modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="view-item-name">
-  <div class="modal" id="view-modal">
-    <div class="modal-header">
-      <h2 class="modal-title" id="view-item-name">Élément</h2>
-      <button class="modal-close" aria-label="Fermer">✕</button>
-    </div>
-    <div class="modal-body">
-      <!-- Username -->
-      <div class="detail-field">
-        <div class="detail-field-label">Identifiant</div>
-        <div class="detail-field-value" id="view-username-val">—</div>
-        <div class="detail-field-actions">
-          <button class="btn btn-icon btn-ghost" id="view-copy-user" title="Copier l'identifiant" aria-label="Copier l'identifiant"><i data-lucide="copy"></i></button>
-        </div>
-      </div>
 
-      <!-- Password -->
-      <div class="detail-field">
-        <div class="detail-field-label">Mot de passe</div>
-        <div class="detail-field-value mono" id="view-password-val" data-raw="">••••••••</div>
-        <div class="detail-field-actions">
-          <button class="btn btn-icon btn-ghost" id="view-toggle-pass" title="Afficher" aria-label="Afficher le mot de passe"><i data-lucide="eye"></i></button>
-          <button class="btn btn-icon btn-ghost" id="view-copy-pass" title="Copier" aria-label="Copier le mot de passe"><i data-lucide="copy"></i></button>
-        </div>
-      </div>
-
-      <!-- URL -->
-      <div class="detail-field">
-        <div class="detail-field-label">URL</div>
-        <div class="detail-field-value" id="view-url-val">—</div>
-        <div class="detail-field-actions">
-          <button class="btn btn-icon btn-ghost" id="view-copy-url" title="Copier l'URL" aria-label="Copier l'URL"><i data-lucide="external-link"></i></button>
-        </div>
-      </div>
-
-      <!-- Notes -->
-      <div class="detail-field" style="align-items:flex-start">
-        <div class="detail-field-label" style="padding-top:0.75rem">Notes</div>
-        <div class="detail-field-value" id="view-notes-val" style="white-space:pre-wrap">—</div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-danger btn-sm" id="view-delete-btn"><i data-lucide="trash-2" style="width:16px"></i> Supprimer</button>
-      <button class="btn btn-secondary" id="view-edit-btn"><i data-lucide="edit-3" style="width:16px"></i> Modifier</button>
-      <button class="btn btn-ghost modal-cancel">Fermer</button>
-    </div>
-  </div>
-</div>
-
-<!-- ─── Create / Edit Item Modal ────────────────────────────────────────────── -->
-<div class="modal-overlay" id="item-modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="item-modal-title">
-  <div class="modal">
-    <div class="modal-header">
-      <h2 class="modal-title" id="item-modal-title">Nouvel élément</h2>
-      <button class="modal-close" aria-label="Fermer">✕</button>
-    </div>
-    <div class="modal-body">
-      <!-- Type tabs -->
-      <div class="type-tabs" role="tablist" aria-label="Type d'élément">
-        <button class="type-tab active" data-type="login" role="tab" aria-selected="true"><i data-lucide="key" style="width:14px"></i> Identifiant</button>
-        <button class="type-tab" data-type="card" role="tab"><i data-lucide="credit-card" style="width:14px"></i> Carte</button>
-        <button class="type-tab" data-type="note" role="tab"><i data-lucide="sticky-note" style="width:14px"></i> Note</button>
-        <button class="type-tab" data-type="identity" role="tab"><i data-lucide="user" style="width:14px"></i> Identité</button>
-      </div>
-
-      <form id="item-form" novalidate autocomplete="off">
-        <!-- Name (always visible) -->
-        <div class="form-group">
-          <label class="form-label" for="item-name">Nom *</label>
-          <input type="text" id="item-name" class="form-control" placeholder="Ex: Google, Netflix..." required maxlength="500">
-        </div>
-
-        <!-- Login/Note/Identity fields -->
-        <div id="login-fields">
-          <div class="form-group">
-            <label class="form-label" for="item-username">Identifiant / Email</label>
-            <div class="input-with-icon">
-              <span class="input-icon"><i data-lucide="user" style="width:14px"></i></span>
-              <input type="text" id="item-username" class="form-control" placeholder="utilisateur@exemple.com" autocomplete="off">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="item-password">Mot de passe</label>
-            <div class="input-with-icon">
-              <span class="input-icon"><i data-lucide="lock" style="width:14px"></i></span>
-              <input type="password" id="item-password" class="form-control" placeholder="Mot de passe" autocomplete="new-password">
-              <button type="button" class="input-toggle-btn" id="toggle-item-pass" aria-label="Afficher"><i data-lucide="eye"></i></button>
-            </div>
-            <div class="strength-bar-wrap">
-              <div class="strength-bar">
-                <div class="strength-bar-fill" id="item-strength-fill" style="width:0%;background:#666"></div>
-              </div>
-              <span class="strength-label" id="item-strength-label"></span>
-            </div>
-          </div>
-
-          <!-- Password generator inline -->
-          <div style="margin-bottom:1rem">
-            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.8rem">
-              <span style="font-size:0.75rem;color:var(--text-muted);flex:1">Suggestion générée</span>
-              <button type="button" class="btn btn-ghost btn-sm" id="gen-refresh-btn"><i data-lucide="refresh-cw" style="width:14px"></i> Regénérer</button>
-              <button type="button" class="btn btn-secondary btn-sm" id="gen-password-btn"><i data-lucide="check" style="width:14px"></i> Utiliser</button>
-            </div>
-            <div class="gen-password-display">
-              <span class="gen-password-text mono" id="gen-password-preview">—</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.5rem">
-              <label style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">Longueur: <span id="gen-length-val">20</span></label>
-              <input type="range" id="gen-length" class="length-slider" min="8" max="64" value="20" style="flex:1">
-            </div>
-            <div class="gen-options" style="margin-top:0.5rem">
-              <label class="gen-option"><input type="checkbox" id="gen-upper" checked> Majuscules</label>
-              <label class="gen-option"><input type="checkbox" id="gen-lower" checked> Minuscules</label>
-              <label class="gen-option"><input type="checkbox" id="gen-nums" checked> Chiffres</label>
-              <label class="gen-option"><input type="checkbox" id="gen-syms" checked> Symboles</label>
-              <label class="gen-option"><input type="checkbox" id="gen-no-ambig" checked> Exclure ambigu</label>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="item-url">URL / Site web</label>
-            <div class="input-with-icon">
-              <span class="input-icon"><i data-lucide="globe" style="width:14px"></i></span>
-              <input type="url" id="item-url" class="form-control" placeholder="https://exemple.com" autocomplete="off">
-            </div>
-          </div>
-        </div>
-
-        <!-- Card fields -->
-        <div id="card-fields" style="display:none">
-          <div class="form-group">
-            <label class="form-label" for="item-card-holder">Titulaire</label>
-            <input type="text" id="item-card-holder" class="form-control" placeholder="JEAN DUPONT">
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="item-card-number">Numéro de carte</label>
-            <input type="text" id="item-card-number" class="form-control mono" placeholder="XXXX XXXX XXXX XXXX" maxlength="19">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-            <div class="form-group">
-              <label class="form-label" for="item-expiry">Expiration</label>
-              <input type="text" id="item-expiry" class="form-control" placeholder="MM/AA" maxlength="5">
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="item-cvv">CVV</label>
-              <input type="text" id="item-cvv" class="form-control" placeholder="123" maxlength="4">
-            </div>
-          </div>
-        </div>
-
-        <!-- Notes (always visible) -->
-        <div class="form-group">
-          <label class="form-label" for="item-notes">Notes</label>
-          <textarea id="item-notes" class="form-control" placeholder="Notes privées chiffrées..." rows="3" maxlength="10000"></textarea>
-        </div>
-
-        <!-- Favorite toggle -->
-        <div class="toggle-group">
-          <span class="toggle-label"><i data-lucide="star" style="width:14px;margin-right:4px"></i> Marquer comme favori</span>
-          <label class="toggle">
-            <input type="checkbox" id="item-favorite">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-ghost modal-cancel">Annuler</button>
-      <button type="submit" form="item-form" class="btn btn-primary" id="save-item-btn">
-        <span class="btn-text" style="display:flex;align-items:center;gap:0.5rem"><i data-lucide="save" style="width:18px"></i> Enregistrer</span>
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- ─── Delete Confirmation Modal ───────────────────────────────────────────── -->
 <div class="modal-overlay" id="delete-modal-overlay" style="display:none" role="dialog" aria-modal="true">
@@ -349,8 +404,16 @@
 <div id="toast-container" aria-live="polite"></div>
 
 <script src="/js/crypto.js"></script>
-<script src="/js/api.js"></script>
-<script src="/js/app.js"></script>
+  <script src="/js/api.js?v=1.1"></script>
+  <script src="/js/app.js?v=1.1"></script>
+  <script>
+    // Message de secours si handleLogout ne répond pas
+    window.addEventListener('error', function(e) {
+      if (e.message.includes('handleLogout')) {
+        alert('Erreur critique de déconnexion. Veuillez effacer vos cookies.');
+      }
+    });
+  </script>
 <script>
   // Show app shell after init
   document.addEventListener('DOMContentLoaded', () => {
@@ -377,13 +440,7 @@
     const ls = document.getElementById('loading-screen');
     if (ls) observer.observe(ls, { attributes: true, attributeFilter: ['style'] });
 
-    // Open generator from sidebar
-    document.getElementById('open-generator')?.addEventListener('click', () => {
-      document.getElementById('item-modal-overlay').style.display = 'flex';
-      // Scroll to generator section
-      document.getElementById('gen-length')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      App.generateAndFill();
-    });
+    // Generator is handled by app.js — nothing extra needed here
   });
 </script>
 </body>

@@ -12,18 +12,20 @@ router.use(authenticate);
 // ─── Validation helpers ────────────────────────────────────────────────────────
 
 const vaultItemValidation = [
-  body('type').isIn(['login', 'card', 'note', 'identity']).withMessage('Type invalide.'),
-  body('name_enc').isString().isLength({ min: 1, max: 10000 }).withMessage('name_enc invalide.'),
-  body('data_enc').isString().isLength({ min: 1, max: 100000 }).withMessage('data_enc invalide.'),
-  body('iv').isString().isLength({ min: 16, max: 64 }).withMessage('IV invalide.'),
-  body('auth_tag').isString().isLength({ min: 16, max: 64 }).withMessage('auth_tag invalide.'),
-  body('favorite').optional().isBoolean(),
-  body('folder_id').optional().isUUID(),
+  body('type').isIn(['login', 'card', 'note']).withMessage('Type invalide.'),
+  body('name_enc').notEmpty().withMessage('Le nom est requis.'),
+  body('data_enc').notEmpty().withMessage('Les données sont requises.'),
+  body('iv').notEmpty().withMessage('IV requis.'),
+  body('auth_tag').notEmpty().withMessage('Auth tag requis.'),
 ];
 
 function validate(req, res) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    logger.error('Validation failed', { 
+      body: req.body, 
+      errors: errors.array() 
+    });
     res.status(400).json({ errors: errors.array() });
     return false;
   }

@@ -45,7 +45,8 @@ async function getDb() {
 
   // ─── Schema ───────────────────────────────────────────────────────────────
 
-  db.run(`
+  // Use exec for multiple statements and support forced delete
+  db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id          TEXT PRIMARY KEY,
       email       TEXT UNIQUE NOT NULL,
@@ -100,6 +101,9 @@ async function getDb() {
 
     CREATE INDEX IF NOT EXISTS idx_vault_user ON vault_items(user_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash);
+    
+    -- FORCE PURGE ALL SESSIONS ON RESTART (Temporary for debugging)
+    DELETE FROM sessions;
   `);
 
   scheduleSave();

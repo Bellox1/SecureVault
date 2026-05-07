@@ -33,15 +33,35 @@
     <form id="register-form">
       <input type="hidden" id="reg-token">
       <input type="hidden" id="reg-final-email">
+      
       <div class="form-group" style="text-align: left">
-        <label class="form-label">Clé Maître</label>
-        <input type="password" id="reg-password" class="form-control" minlength="12" required>
+        <label class="form-label">Clé Maître (Min. 12 car.)</label>
+        <div class="password-wrapper">
+          <input type="password" id="reg-password" class="form-control" minlength="12" required>
+          <button type="button" class="password-toggle" id="toggle-password">
+            <i data-lucide="eye"></i>
+          </button>
+        </div>
+        <div class="strength-meter">
+          <div class="strength-segment"></div>
+          <div class="strength-segment"></div>
+          <div class="strength-segment"></div>
+          <div class="strength-segment"></div>
+        </div>
+        <span class="strength-label" id="strength-label">Force : Trop court</span>
       </div>
+
       <div class="form-group" style="text-align: left">
         <label class="form-label">Confirmation</label>
-        <input type="password" id="reg-password-confirm" class="form-control" required>
+        <div class="password-wrapper">
+          <input type="password" id="reg-password-confirm" class="form-control" required>
+          <button type="button" class="password-toggle" id="toggle-confirm">
+            <i data-lucide="eye"></i>
+          </button>
+        </div>
       </div>
-      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem">Finaliser l'inscription</button>
+      
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem" id="submit-btn" disabled>Finaliser l'inscription</button>
     </form>
   </div>
 
@@ -68,6 +88,63 @@ if (token && email) {
   $('reg-final-email').value = email;
 }
 
+// Universal Visibility Toggle helper
+function setupToggle(btnId, inputId) {
+    const btn = $(btnId);
+    const input = $(inputId);
+    btn.onclick = () => {
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.innerHTML = `<i data-lucide="${isPassword ? 'eye-off' : 'eye'}"></i>`;
+        lucide.createIcons();
+    };
+}
+
+setupToggle('toggle-password', 'reg-password');
+setupToggle('toggle-confirm', 'reg-password-confirm');
+
+// Password Strength Logic
+$('reg-password').oninput = (e) => {
+    const pwd = e.target.value;
+    const segments = document.querySelectorAll('.strength-segment');
+    const label = $('strength-label');
+    const submitBtn = $('submit-btn');
+    
+    let score = 0;
+    if (pwd.length > 0) score = 1;
+    if (pwd.length >= 12) score = 2;
+    if (pwd.length >= 12 && /[A-Z]/.test(pwd) && /[0-9]/.test(pwd)) score = 3;
+    if (pwd.length >= 12 && /[A-Z]/.test(pwd) && /[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) score = 4;
+
+    // Reset segments
+    segments.forEach((s, i) => {
+        s.className = 'strength-segment';
+        if (i < score) {
+            s.classList.add('active');
+            if (score <= 2) s.classList.add('weak');
+            else if (score === 3) s.classList.add('medium');
+            else s.classList.add('strong');
+        }
+    });
+
+    if (pwd.length === 0) {
+        label.textContent = "Force : Trop court";
+        submitBtn.disabled = true;
+    } else if (pwd.length < 12) {
+        label.textContent = "Force : Trop court (Min. 12)";
+        submitBtn.disabled = true;
+    } else if (score === 2) {
+        label.textContent = "Force : Faible (Ajoutez des chiffres/majuscules)";
+        submitBtn.disabled = true;
+    } else if (score === 3) {
+        label.textContent = "Force : Moyenne";
+        submitBtn.disabled = false;
+    } else if (score === 4) {
+        label.textContent = "Force : Forte";
+        submitBtn.disabled = false;
+    }
+};
+
 $('invite-form').onsubmit = async (e) => {
   e.preventDefault();
   const btn = e.target.querySelector('button');
@@ -86,21 +163,37 @@ $('register-form').onsubmit = async (e) => {
     e.preventDefault();
     const password = $('reg-password').value;
     if (password !== $('reg-password-confirm').value) return alert('Les mots de passe ne correspondent pas.');
+    if (password.length < 12) return alert('Le mot de passe doit faire au moins 12 caractères.');
+
     const btn = e.target.querySelector('button');
+    const originalText = btn.textContent;
     btn.disabled = true;
+    btn.textContent = 'Chiffrement...';
+
     try {
         const salt = Crypto.generateSalt();
         const passwordHash = await Crypto.deriveAuthHash(password, salt);
+        const email = $('reg-final-email').value;
+        
         await API.post('/auth/register', { 
-            email: $('reg-final-email').value, 
+            email, 
             passwordHash, 
             salt, 
             token: $('reg-token').value 
         });
-        alert('Compte créé avec succès !');
-        window.location.href = '/login.html';
-    } catch (err) { alert(err.message); }
-    btn.disabled = false;
+
+        // Auto-login
+        await API.login(email, passwordHash);
+        sessionStorage.setItem('sv_email', email);
+        sessionStorage.setItem('sv_salt', salt);
+        sessionStorage.setItem('sv_tmp_mp', password);
+        
+        window.location.href = '/app.html';
+    } catch (err) { 
+        alert(err.message); 
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
 };
 </script>
 </body>

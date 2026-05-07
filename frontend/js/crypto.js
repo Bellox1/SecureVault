@@ -183,10 +183,10 @@ const Crypto = (() => {
       url: item.url || '',
       notes: item.notes || '',
       totp: item.totp || '',
-      cardNumber: item.cardNumber || '',
-      cardHolder: item.cardHolder || '',
-      expiryDate: item.expiryDate || '',
-      cvv: item.cvv || '',
+      firstName: item.firstName || '',
+      lastName: item.lastName || '',
+      email: item.email || '',
+      phone: item.phone || '',
       customFields: item.customFields || [],
     });
     const { data_enc, iv, auth_tag } = await encrypt(payload, encryptionKey);
@@ -224,6 +224,10 @@ const Crypto = (() => {
         created_at: encItem.created_at,
         updated_at: encItem.updated_at,
         ...data,
+        name_enc: encItem.name_enc,
+        data_enc: encItem.data_enc,
+        iv: encItem.iv,
+        auth_tag: encItem.auth_tag
       };
     } catch (err) {
       console.error('Decryption failed for item', encItem.id, err);

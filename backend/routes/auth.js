@@ -9,6 +9,16 @@ const db = require('../database');
 const logger = require('../logger');
 const { JWT_SECRET } = require('../middleware/auth');
 const { authLimiter, registerLimiter } = require('../middleware/rateLimiter');
+const { authenticate } = require('../middleware/auth');
+
+// Anti-cache middleware for auth routes
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
+  next();
+});
 
 const LOCK_THRESHOLD = 5;          // lock after 5 failed attempts
 const LOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
@@ -224,22 +234,54 @@ router.post('/login',
 );
 
 // ─── POST /api/auth/logout ────────────────────────────────────────────────────
-router.post('/logout', require('../middleware/auth').authenticate, (req, res) => {
-  try {
-    db.prepare('DELETE FROM sessions WHERE id = ?').run(req.user.sessionId);
-    res.clearCookie('sv_token');
-    logger.info('User logged out', { userId: req.user.id });
-    res.json({ message: 'Déconnexion réussie.' });
-  } catch (err) {
-    logger.error('Logout error', { error: err.message });
-    res.status(500).json({ error: 'Erreur lors de la déconnexion.' });
+router.post('/logout', (req, res) => {
+  console.log('\n\n' + '='.repeat(40));
+  console.log('!!! REQUETE DE DECONNEXION RECUE !!!');
+  console.log('='.repeat(40) + '\n');
+  const token = req.cookies?.sv_token;
+  let deletedCount = 0;
+
+  if (token) {
+    try {
+      const decoded = jwt.decode(token);
+      if (decoded && decoded.sub) {
+        const result = db.prepare('DELETE FROM sessions WHERE user_id = ?').run(decoded.sub);
+        deletedCount += (result.changes || 0);
+      }
+      
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const result2 = db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(tokenHash);
+      deletedCount += (result2.changes || 0);
+
+      console.log(`--- LOGOUT: Deleted ${deletedCount} sessions for user ---`);
+    } catch (err) {
+      logger.error('Logout purge error', { error: err.message });
+    }
   }
+  res.clearCookie('sv_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+  });
+  res.json({ message: 'Déconnexion réussie.', deletedIndex: deletedCount });
+});
+
+// EMERGENCY PURGE (Temporary for debugging)
+router.get('/purge-sessions-now', (req, res) => {
+  db.prepare('DELETE FROM sessions').run();
+  res.clearCookie('sv_token');
+  res.send('Toutes les sessions ont été purgées. Veuillez actualiser la page d\'accueil.');
 });
 
 // ─── GET /api/auth/me ─────────────────────────────────────────────────────────
-router.get('/me', require('../middleware/auth').authenticate, (req, res) => {
+router.get('/me', authenticate, (req, res) => {
   const user = db.prepare('SELECT id, email, created_at, last_login FROM users WHERE id = ?').get(req.user.id);
-  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  if (!user) {
+    logger.warn('Me check: User not found in DB but session exists', { userId: req.user.id });
+    return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  }
+  console.log('--- AUTH ME SUCCESS ---', user.email);
   res.json({ user });
 });
 
