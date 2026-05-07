@@ -75,20 +75,32 @@ router.post('/register-invite',
         return res.json({ message: 'Si cet email est valide, vous recevrez un lien.' });
       }
 
+      // 1. Invalidation des anciens liens et anti-spam (60s)
+      const lastPending = db.prepare('SELECT expires_at FROM pending_registrations WHERE email = ?').get(normalizedEmail);
+      if (lastPending) {
+        const timeSinceCreation = 30 * 60 * 1000 - (lastPending.expires_at - Date.now());
+        if (timeSinceCreation < 60 * 1000) { // Moins de 60s
+           return res.json({ message: 'Un email a déjà été envoyé récemment. Veuillez patienter une minute.' });
+        }
+        // Invalider l'ancien lien explicitement
+        db.prepare('DELETE FROM pending_registrations WHERE email = ?').run(normalizedEmail);
+      }
+
       const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = Date.now() + 30 * 60 * 1000; // 30 mins
 
-      db.prepare('INSERT OR REPLACE INTO pending_registrations (token, email, expires_at) VALUES (?, ?, ?)')
+      db.prepare('INSERT INTO pending_registrations (token, email, expires_at) VALUES (?, ?, ?)')
         .run(token, normalizedEmail, expiresAt);
 
-      // Envoi réel de l'email
+      // Envoi réel de l'email (asynchrone pour ne pas bloquer la réponse)
       const inviteUrl = `${req.headers.origin}/register.html?regToken=${token}&email=${encodeURIComponent(normalizedEmail)}`;
-      const emailSent = await sendInviteEmail(normalizedEmail, inviteUrl);
+      
+      sendInviteEmail(normalizedEmail, inviteUrl).catch(err => {
+        logger.error('Email sending failed in background', { error: err.message, email: normalizedEmail });
+      });
 
       res.json({
-        message: emailSent 
-          ? 'Si cet email est valide, vous recevrez un lien sous peu.' 
-          : 'Génération du lien réussie, mais erreur lors de l\'envoi de l\'email. Contactez le support.',
+        message: 'Un email contenant votre lien d\'inscription a été envoyé. Si vous ne le recevez pas, vérifiez vos spams.',
         devLink: process.env.NODE_ENV === 'development' ? inviteUrl : null
       });
     } catch (err) {

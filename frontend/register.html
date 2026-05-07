@@ -152,8 +152,8 @@ $('invite-form').onsubmit = async (e) => {
   btn.disabled = true;
   btn.textContent = 'Envoi...';
   try {
-    await API.post('/auth/register-invite', { email: $('reg-email').value });
-    alert('Vérifiez le terminal backend pour le lien d\'invitation.');
+    const res = await API.post('/auth/register-invite', { email: $('reg-email').value });
+    alert(res.message || 'Lien d\'inscription envoyé !');
   } catch (err) { alert(err.message); }
   btn.disabled = false;
   btn.textContent = originalText;
