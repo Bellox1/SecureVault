@@ -26,6 +26,17 @@
     </form>
   </div>
 
+  <!-- Vue de confirmation après envoi du lien -->
+  <div id="register-step-confirm" style="display:none; text-align:center">
+    <div style="width:64px; height:64px; background: #f0fdf4; border-radius: 50%; display:flex; align-items:center; justify-content:center; margin: 0 auto 1.5rem;">
+      <i data-lucide="mail-check" style="width:30px; height:30px; color: #16a34a"></i>
+    </div>
+    <h2 style="margin-bottom: 0.75rem">Email envoyé !</h2>
+    <p style="color: var(--bw-text-secondary); margin-bottom: 0.5rem">Un lien d'inscription a été envoyé à :</p>
+    <p id="confirm-email-display" style="font-weight: 700; font-size: 1rem; color: var(--bw-text-primary); margin-bottom: 1.5rem; word-break: break-all;"></p>
+    <p style="font-size: 0.8125rem; color: var(--bw-text-muted); line-height: 1.7; background: var(--bw-bg-secondary); border-radius: 8px; padding: 1rem;">Vérifiez votre boîte de réception et cliquez sur le lien pour finaliser votre inscription. <strong>Le lien expire dans 30 minutes.</strong><br>Si vous ne le recevez pas, vérifiez vos spams.</p>
+  </div>
+
   <div id="register-step-2" style="display:none">
     <h1>Configuration</h1>
     <p>Créez votre mot de passe maître robuste.</p>
@@ -82,10 +93,39 @@ const token = urlParams.get('regToken');
 const email = urlParams.get('email');
 
 if (token && email) {
-  $('register-step-1').style.display = 'none';
-  $('register-step-2').style.display = 'block';
-  $('reg-token').value = token;
-  $('reg-final-email').value = email;
+  // Validation du token côté serveur avant d'afficher le formulaire
+  (async () => {
+    try {
+      const res = await fetch(`/api/auth/validate-invite?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      if (data.valid) {
+        $('register-step-1').style.display = 'none';
+        $('register-step-2').style.display = 'block';
+        $('reg-token').value = token;
+        $('reg-final-email').value = email;
+      } else {
+        // Token invalide ou expiré : afficher un message d'erreur propre
+        $('register-step-1').style.display = 'none';
+        $('register-step-confirm').style.display = 'block';
+        $('register-step-confirm').innerHTML = `
+          <div style="width:64px;height:64px;background:#fef2f2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+            <i data-lucide="link-2-off" style="width:30px;height:30px;color:#dc2626"></i>
+          </div>
+          <h2 style="margin-bottom:0.75rem;color:#dc2626">Lien invalide</h2>
+          <p style="color:var(--bw-text-secondary);margin-bottom:1.5rem;">${data.error || 'Ce lien a déjà été utilisé ou a expiré.'}</p>
+          <a href="/register.html" class="btn btn-primary">Demander un nouveau lien</a>
+        `;
+        lucide.createIcons();
+      }
+    } catch {
+      $('register-step-1').style.display = 'none';
+      $('register-step-confirm').innerHTML = `
+        <p style="color:#dc2626">Impossible de vérifier ce lien. Vérifiez votre connexion.</p>
+        <a href="/register.html" class="btn btn-outline" style="margin-top:1rem">Réessayer</a>
+      `;
+      $('register-step-confirm').style.display = 'block';
+    }
+  })();
 }
 
 // Universal Visibility Toggle helper
@@ -147,16 +187,44 @@ $('reg-password').oninput = (e) => {
 
 $('invite-form').onsubmit = async (e) => {
   e.preventDefault();
+  const email = $('reg-email').value;
   const btn = e.target.querySelector('button');
   const originalText = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Envoi...';
+  btn.textContent = 'Envoi en cours...';
   try {
-    const res = await API.post('/auth/register-invite', { email: $('reg-email').value });
-    alert(res.message || 'Lien d\'inscription envoyé !');
-  } catch (err) { alert(err.message); }
-  btn.disabled = false;
-  btn.textContent = originalText;
+    const res = await API.post('/auth/register-invite', { email });
+    // Afficher la vue de confirmation inline
+    $('register-step-1').style.display = 'none';
+    $('confirm-email-display').textContent = email;
+    $('register-step-confirm').style.display = 'block';
+    lucide.createIcons();
+    // Si le message indique une limite (cooldown), afficher quand même mais avec le message du serveur
+    if (res.message && res.message.includes('patienter')) {
+      $('register-step-1').style.display = 'block';
+      $('register-step-confirm').style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = originalText;
+      const errDiv = document.createElement('p');
+      errDiv.style.cssText = 'color: #b45309; background: #fef9c3; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; font-size: 0.875rem;';
+      errDiv.textContent = res.message;
+      // Remove any existing message
+      const old = $('invite-form').querySelector('.cooldown-msg');
+      if (old) old.remove();
+      errDiv.className = 'cooldown-msg';
+      $('invite-form').appendChild(errDiv);
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = originalText;
+    const errDiv = document.createElement('p');
+    errDiv.style.cssText = 'color: #dc2626; background: #fef2f2; border-radius: 8px; padding: 0.75rem; margin-top: 1rem; font-size: 0.875rem;';
+    errDiv.textContent = err.message || 'Une erreur est survenue. Réessayez.';
+    const old = $('invite-form').querySelector('.error-msg');
+    if (old) old.remove();
+    errDiv.className = 'error-msg';
+    $('invite-form').appendChild(errDiv);
+  }
 };
 
 $('register-form').onsubmit = async (e) => {

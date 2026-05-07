@@ -115,6 +115,26 @@ router.post('/register-invite',
   }
 );
 
+// ─── GET /api/auth/validate-invite ───────────────────────────────────────────
+// Vérifie qu'un token d'invitation est encore valide en base
+router.get('/validate-invite', (req, res) => {
+  const { token, email } = req.query;
+  if (!token || !email) {
+    return res.status(400).json({ valid: false, error: 'Paramètres manquants.' });
+  }
+  const normalizedEmail = sanitizeEmail(email);
+  const pending = db.prepare(
+    'SELECT expires_at FROM pending_registrations WHERE token = ? AND email = ?'
+  ).get(token, normalizedEmail);
+
+  if (!pending || pending.expires_at < Date.now()) {
+    return res.status(400).json({ valid: false, error: 'Ce lien est expiré ou a déjà été utilisé.' });
+  }
+
+  const remainingMs = pending.expires_at - Date.now();
+  res.json({ valid: true, remainingMs });
+});
+
 // ─── POST /api/auth/register ──────────────────────────────────────────────────
 router.post('/register',
   registerLimiter,
