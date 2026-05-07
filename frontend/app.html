@@ -6,6 +6,7 @@
   <meta name="description" content="SecureVault - Mon coffre chiffré">
   <title>SecureVault — Mon Coffre</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="manifest" href="/manifest.json">
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- Security: prevent caching of the app page -->
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
@@ -606,5 +607,10 @@
   });
 </script>
 <div id="sidebar-overlay" class="sidebar-overlay"></div>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
 </body>
 </html>

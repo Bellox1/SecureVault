@@ -1,0 +1,19 @@
+{
+  "name": "SecureVault - BELLOX DIGITAL",
+  "short_name": "SecureVault",
+  "description": "Votre coffre-fort sécurisé chiffré de bout en bout.",
+  "start_url": "/login.html",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay"],
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#F97316",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    }
+  ]
+}

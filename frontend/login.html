@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Connexion — SecureVault</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="manifest" href="/manifest.json">
 </head>
 <body class="auth-page">
 
@@ -57,10 +58,26 @@
   </form>
 
   <div class="auth-footer" id="auth-footer">
+    <button type="button" onclick="launchAppMode()" class="btn btn-ghost" style="width: 100%; margin-bottom: 1rem; border: 1px solid var(--bw-border); font-size: 0.8125rem;">
+      <i data-lucide="monitor" style="width:14px; margin-right:8px"></i> Lancer en mode Bureau
+    </button>
     <p>Nouveau membre ? <a href="/register.html">Créer un compte</a></p>
     <a href="/" style="display: inline-block; margin-top: 1.5rem; color: var(--bw-text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em">← Retour à l'accueil</a>
   </div>
 </div>
+
+<script>
+function launchAppMode() {
+  const width = 1200;
+  const height = 800;
+  const left = (window.screen.width / 2) - (width / 2);
+  const top = (window.screen.height / 2) - (height / 2);
+  
+  window.open(window.location.href, 'SecureVault', 
+    `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes`
+  );
+}
+</script>
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="/js/crypto.js"></script>
@@ -168,6 +185,11 @@ function finalizeLogin(email, salt, password) {
   sessionStorage.setItem('sv_tmp_mp', password);
   window.location.href = '/app.html';
 }
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
 </script>
 </body>
 </html>

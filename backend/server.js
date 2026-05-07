@@ -76,6 +76,18 @@ app.use('/api/auth', authRoutes);
 app.use('/api/vault', vaultRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Route pour recevoir les logs de l'extension
+app.post('/api/log-extension', (req, res) => {
+  const { level, message, data } = req.body;
+  const msg = `[EXTENSION-${level || 'info'}] ${message}`;
+  if (level === 'error') {
+    logger.error(msg, { data });
+  } else {
+    logger.info(msg, { data });
+  }
+  res.json({ ok: true });
+});
+
 // Route pour le formulaire de contact
 const mailer = require('./mailer');
 app.post('/api/contact', async (req, res) => {

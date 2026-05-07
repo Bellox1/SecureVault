@@ -81,9 +81,20 @@ const App = (() => {
 
     try {
       encryptionKey = await Crypto.deriveEncryptionKey(tmpMp, salt);
-    } catch {
-      showToast('Erreur de dérivation de clé. Reconnectez-vous.', 'error');
-      setTimeout(() => { window.location.href = '/'; }, 2000);
+    } catch (err) {
+      // Loguer l'erreur vers le serveur pour comprendre pourquoi la dérivation échoue sur le site
+      fetch('/api/log-extension', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          level: 'error', 
+          message: `ÉCHEC DÉRIVATION SITE WEB: ${err.message}`, 
+          data: { email: currentUser.email, saltLength: salt?.length } 
+        })
+      }).finally(() => {
+        showToast('Erreur de dérivation de clé. Reconnectez-vous.', 'error');
+        setTimeout(() => { window.location.href = '/'; }, 2000);
+      });
       return;
     }
     // Note: sv_tmp_mp is kept in sessionStorage to allow refreshes. 

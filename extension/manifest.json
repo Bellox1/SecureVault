@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "SecureVault - BELLOX DIGITAL",
+  "version": "1.0.0",
+  "description": "Le coffre-fort ultra-sécurisé de BELLOX DIGITAL pour vos mots de passe.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon48.png"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:3001/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "host_permissions": [
+    "*://localhost/*",
+    "http://localhost:3001/*",
+    "https://*.belloxdigital.com/*"
+  ]
+}
