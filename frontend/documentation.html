@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentation — SecureVault</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .doc-layout { display: grid; grid-template-columns: 280px 1fr; gap: 4rem; padding: 4rem 0; }
+    .doc-nav { position: sticky; top: 100px; height: fit-content; }
+    .doc-nav h4 { margin-bottom: 1.5rem; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; color: var(--bw-text-secondary); }
+    .doc-nav a { display: block; padding: 0.75rem 0; color: var(--bw-text-primary); text-decoration: none; font-weight: 500; border-bottom: 1px solid var(--bw-border); transition: 0.2s; }
+    .doc-nav a:hover { color: var(--bw-primary); padding-left: 0.5rem; }
+    .doc-section { margin-bottom: 5rem; }
+    .doc-section h2 { margin-bottom: 2rem; font-size: 2.25rem; }
+    .doc-card { background: white; border: 1px solid var(--bw-border); border-radius: 20px; padding: 2rem; margin-bottom: 2rem; transition: 0.3s; }
+    .doc-card:hover { border-color: var(--bw-primary); box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    .doc-card h3 { margin-bottom: 1rem; color: var(--bw-primary); }
+    .code-block { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; font-family: monospace; color: #334155; margin: 1.5rem 0; }
+    
+    @media (max-width: 992px) {
+      .doc-layout { grid-template-columns: 1fr; gap: 2rem; }
+      .doc-nav { display: none; }
+    }
+  </style>
+</head>
+<body style="background: var(--bw-bg-primary);">
+
+  <!-- Harmonized Header -->
+  <header class="landing-header">
+    <a href="/" class="brand" style="text-decoration: none; color: inherit;">
+      <span>SecureVault</span>
+    </a>
+    <nav class="nav-links">
+      <a href="/#features">Fonctionnalités</a>
+      <a href="/#security">Sécurité</a>
+      <a href="/contact.html">Contact</a>
+      <a href="/login.html" class="btn btn-ghost btn-sm">Se connecter</a>
+      <a href="/register.html" class="btn btn-primary btn-sm">Démarrer gratuitement</a>
+    </nav>
+    <!-- Mobile Toggle -->
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="menuToggle">
+      <i data-lucide="menu" class="icon-menu"></i>
+      <i data-lucide="x" class="icon-close" style="display: none"></i>
+    </button>
+  </header>
+
+  <!-- Mobile Dropdown Menu -->
+  <div class="mobile-dropdown" id="mobileMenu">
+    <a href="/#features" onclick="toggleMobileMenu()">Fonctionnalités</a>
+    <a href="/#security" onclick="toggleMobileMenu()">Sécurité</a>
+    <a href="/contact.html" onclick="toggleMobileMenu()">Contact</a>
+    <hr style="opacity: 0.05; margin: 0.5rem 0">
+    <div style="display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem">
+      <a href="/login.html" class="btn btn-ghost btn-sm" style="justify-content: flex-start; padding: 0.5rem 0">Se connecter</a>
+      <a href="/register.html" class="btn btn-primary btn-sm">Démarrer gratuitement</a>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="doc-layout">
+      <!-- Navigation gauche -->
+      <aside class="doc-nav">
+        <h4>Sommaire</h4>
+        <a href="#getting-started">Premiers Pas</a>
+        <a href="#security-vault">Coffre-fort & Sécurité</a>
+        <a href="#2fa-setup">Configuration 2FA</a>
+        <a href="#recovery">Récupération de compte</a>
+      </aside>
+
+      <!-- Contenu -->
+      <div class="doc-content">
+        <section id="getting-started" class="doc-section">
+          <h2>Premiers Pas</h2>
+          <div class="doc-card">
+            <h3>Création de compte</h3>
+            <p>Pour commencer avec SecureVault, inscrivez-vous avec une adresse email valide. Un lien d'invitation sécurisé vous sera envoyé. Les liens expirent après 5 minutes pour garantir votre sécurité maximale.</p>
+          </div>
+          <div class="doc-card">
+            <h3>Le Coffre-fort</h3>
+            <p>Une fois connecté, vous accédez à votre tableau de bord. Vous pouvez y ajouter des identifiants (Login, Password, URL) de manière illimitée. Toutes les informations sont chiffrées localement avant stockage.</p>
+          </div>
+        </section>
+
+        <section id="security-vault" class="doc-section">
+          <h2>Coffre-fort & Sécurité</h2>
+          <div class="doc-card">
+            <h3>Chiffrement de bout en bout</h3>
+            <p>Nous utilisons les algorithmes de chiffrement les plus robustes de l'industrie (AES-256) pour protéger vos données. Vos mots de passe ne sont jamais visibles, même par nos administrateurs. Seul votre mot de passe maître peut déverrouiller l'accès à vos informations.</p>
+          </div>
+        </section>
+
+        <section id="2fa-setup" class="doc-section">
+          <h2>Configuration 2FA</h2>
+          <p style="margin-bottom: 2rem;">SecureVault supporte l'authentification à deux facteurs via Google Authenticator, Authy ou FreeOTP.</p>
+          <div class="doc-card">
+            <h3>Activation</h3>
+            <p>Rendez-vous dans vos paramètres, scannez le QR Code généré et entrez le code secret à 6 chiffres pour lier votre appareil.</p>
+          </div>
+        </section>
+
+        <section id="recovery" class="doc-section" style="padding-bottom: 0;">
+          <h2>Besoin d'aide supplémentaire ?</h2>
+          <p>Si vous ne trouvez pas la réponse à vos questions, n'hésitez pas à contacter notre support technique.</p>
+          <a href="/contact.html" class="btn btn-primary" style="margin-top: 1.5rem;">Ouvrir un ticket support</a>
+        </section>
+      </div>
+    </div>
+  </main>
+
+<footer style="padding: 4rem 1.5rem; background: var(--bw-bg-secondary); border-top: 1px solid var(--bw-border); margin-top: 2rem;">
+  <div class="grid-3" style="max-width: var(--container-max); margin: 0 auto; gap: 3rem">
+    <div>
+      <a href="/" class="brand" style="margin-bottom: 1.5rem; text-decoration: none; color: inherit;">
+        <span>SecureVault</span>
+      </a>
+      <p style="color: var(--bw-text-secondary); line-height: 1.8">La solution leader pour la gestion des identités numériques en entreprise et pour les particuliers. Sécurité maximale, simplicité totale.</p>
+    </div>
+    <div>
+      <h4 style="margin-bottom: 1.25rem">Produit</h4>
+      <ul style="display: grid; gap: 0.75rem; color: var(--bw-text-secondary)">
+        <li>Fonctionnalités</li>
+        <li>Entreprise</li>
+        <li>Tarification</li>
+        <li>Sécurité</li>
+      </ul>
+    </div>
+    <div>
+      <h4 style="margin-bottom: 1.25rem">Support</h4>
+      <ul style="display: grid; gap: 0.75rem;">
+        <li><a href="/documentation.html" style="color: inherit; text-decoration: none; opacity: 0.7">Documentation</a></li>
+        <li><a href="/contact.html" style="color: inherit; text-decoration: none; opacity: 0.7">Contact</a></li>
+        <li style="opacity: 0.7">Status</li>
+        <li style="opacity: 0.7">Vie privée</li>
+      </ul>
+    </div>
+  </div>
+  <div style="max-width: var(--container-max); margin: 4rem auto 0; padding-top: 2rem; border-top: 1px solid var(--bw-border); text-align: center">
+    <p style="color: var(--bw-text-muted); font-size: 0.875rem">© 2026 BELLOX DIGITAL. Conçu avec passion pour la liberté numérique.</p>
+  </div>
+</footer>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    lucide.createIcons();
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      const btn = document.getElementById('menuToggle');
+      menu.classList.toggle('active');
+      btn.classList.toggle('active');
+    }
+  </script>
+</body>
+</html>

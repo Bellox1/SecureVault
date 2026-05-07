@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — SecureVault</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    @media (max-width: 992px) {
+      .contact-grid-main {
+        grid-template-columns: 1fr !important;
+        gap: 2rem !important;
+      }
+    }
+  </style>
+</head>
+
+<body style="background: var(--bw-bg-secondary); min-height: 100vh;">
+
+  <!-- Harmonized Header -->
+  <header class="landing-header" style="background: white; border-bottom: 1px solid var(--bw-border);">
+    <a href="/" class="brand" style="text-decoration: none; color: inherit;">
+      <span>SecureVault</span>
+    </a>
+    <nav class="nav-links">
+      <a href="/#features">Fonctionnalités</a>
+      <a href="/#security">Sécurité</a>
+      <a href="/documentation.html">Docs</a>
+      <a href="/login.html" class="btn btn-ghost btn-sm">Se connecter</a>
+      <a href="/register.html" class="btn btn-primary btn-sm">Démarrer gratuitement</a>
+    </nav>
+    <!-- Mobile Toggle -->
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="menuToggle">
+      <i data-lucide="menu" class="icon-menu"></i>
+      <i data-lucide="x" class="icon-close" style="display: none"></i>
+    </button>
+  </header>
+
+  <!-- Mobile Dropdown Menu -->
+  <div class="mobile-dropdown" id="mobileMenu">
+    <a href="/#features" onclick="toggleMobileMenu()">Fonctionnalités</a>
+    <a href="/#security" onclick="toggleMobileMenu()">Sécurité</a>
+    <a href="/documentation.html" onclick="toggleMobileMenu()">Documentation</a>
+    <hr style="opacity: 0.05; margin: 0.5rem 0">
+    <div style="display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem">
+      <a href="/login.html" class="btn btn-ghost btn-sm" style="justify-content: flex-start; padding: 0.5rem 0">Se
+        connecter</a>
+      <a href="/register.html" class="btn btn-primary btn-sm">Démarrer gratuitement</a>
+    </div>
+  </div>
+
+  <div class="container" style="max-width: var(--container-max); width: 100%; padding-top: 4rem; padding-bottom: 5rem;">
+
+    <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 4rem;" class="contact-grid-main">
+      <!-- Colonne Infos -->
+      <div>
+        <h1 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Parlons ensemble de votre sécurité.</h1>
+        <p style="color: var(--bw-text-secondary); font-size: 1.125rem; margin-bottom: 3rem; line-height: 1.6;">
+          Besoin d'aide avec votre coffre-fort ? Ou peut-être souhaitez-vous discuter de solutions de sécurité pour
+          votre entreprise ? Notre équipe est prête à vous répondre.
+        </p>
+
+        <div style="display: grid; gap: 2rem;">
+          <div style="display: flex; gap: 1rem;">
+            <div
+              style="flex-shrink: 0; width: 48px; height: 48px; background: white; border-radius: 12px; border: 1px solid var(--bw-border); display: flex; align-items: center; justify-content: center; color: var(--bw-primary)">
+              <i data-lucide="mail"></i>
+            </div>
+            <div>
+              <strong style="display: block; margin-bottom: 0.25rem;">Email</strong>
+              <span style="color: var(--bw-text-secondary);">support@bellox.digital</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 1rem;">
+            <div
+              style="flex-shrink: 0; width: 48px; height: 48px; background: white; border-radius: 12px; border: 1px solid var(--bw-border); display: flex; align-items: center; justify-content: center; color: var(--bw-primary)">
+              <i data-lucide="map-pin"></i>
+            </div>
+            <div>
+              <strong style="display: block; margin-bottom: 0.25rem;">Bureau</strong>
+              <span style="color: var(--bw-text-secondary);">Siège Social — BELLOX DIGITAL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colonne Formulaire -->
+      <div class="auth-card" style="text-align: left; max-width: none;">
+        <h2 style="margin-bottom: 1.5rem;">Envoyer un message</h2>
+        <form id="contact-form">
+          <div class="form-group">
+            <label class="form-label">Nom complet</label>
+            <input type="text" class="form-control" placeholder="Votre nom complet" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email professionnel</label>
+            <input type="email" class="form-control" placeholder="Votre adresse email" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sujet</label>
+            <select class="form-control" id="contact-subject" onchange="checkSubject(this.value)">
+              <option>Support technique</option>
+              <option>Question commerciale</option>
+              <option>Partenariat</option>
+              <option>Autre</option>
+            </select>
+          </div>
+          <div class="form-group" id="other-subject-group" style="display: none;">
+            <label class="form-label">Précisez le sujet (optionnel)</label>
+            <input type="text" class="form-control" id="other-subject" placeholder="Ex: Demande de devis spécifique">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea class="form-control" id="contact-message" rows="5" placeholder="Comment pouvons-nous vous aider ?"
+              required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Envoyer le message <i data-lucide="send"
+              style="width: 16px; margin-left: 0.5rem"></i></button>
+        </form>
+        <div id="contact-success"
+          style="display: none; padding: 1.5rem; background: #ecfdf5; color: #065f46; border-radius: 12px; margin-top: 1.5rem; text-align: center; border: 1px solid #10b981;">
+          <i data-lucide="check-circle" style="width: 32px; height: 32px; margin-bottom: 0.5rem;"></i>
+          <p><strong>Message reçu !</strong><br>Notre équipe BELLOX DIGITAL vous répondra sous 24h.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- About BELLOX section -->
+    <div
+      style="margin-top: 8rem; border-top: 1px solid var(--bw-border); padding-top: 5rem; max-width: var(--container-max); margin-left: auto; margin-right: auto; width: 100%;">
+      <div class="grid-2" style="gap: 4rem; align-items: start;">
+        <!-- Left Side: Mission -->
+        <div style="max-width: 550px;">
+          <h2 style="font-size: 2.5rem; margin-bottom: 2.5rem; font-weight: 900; line-height: 1.1;">
+            À propos de <br>
+            <span
+              style="background: linear-gradient(135deg, var(--bw-primary) 0%, #fbbf24 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; display: inline-block;">BELLOX
+              DIGITAL</span>
+          </h2>
+          <p style="color: var(--bw-text-secondary); line-height: 1.8; margin-bottom: 2.5rem; font-size: 1.125rem;">
+            Reconnu sous le nom de <strong style="color: var(--bw-primary)">BELLOX</strong>, nous sommes une agence qui
+            entreprend dans plusieurs domaines, avec une spécialisation forte dans la <strong>digitalisation</strong>.
+            Notre mission est de concevoir des applications et des sites web hautement sécurisés et scalables, en
+            utilisant les technologies les plus puissantes et les moins vulnérables du marché.
+          </p>
+          <div style="display: flex; gap: 1rem; align-items: center;">
+            <div style="background: var(--bw-primary); width: 60px; height: 4px; border-radius: 2px;"></div>
+            <span
+              style="font-size: 0.875rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: var(--bw-primary);">Innovation
+              & Sécurité Absolue</span>
+          </div>
+        </div>
+
+        <!-- Right Side: Projects list -->
+        <div>
+          <h3
+            style="font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--bw-primary); display: flex; align-items: center; gap: 0.5rem;">
+            <i data-lucide="layers" style="width: 20px;"></i> Nos Réalisations
+          </h3>
+          <div style="display: grid; gap: 1rem;">
+            <a href="https://eventvote.alwaysdata.net" target="_blank"
+              style="text-decoration: none; color: inherit; display: block; background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid var(--bw-border); box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.2s;"
+              onmouseover="this.style.transform='translateX(10px)'; this.style.borderColor='var(--bw-primary)'"
+              onmouseout="this.style.transform='translateX(0)'; this.style.borderColor='var(--bw-border)'">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="display:block; margin-bottom: 0.25rem;">Evente vote</strong>
+                <i data-lucide="external-link" style="width: 14px; opacity: 0.5;"></i>
+              </div>
+              <p style="font-size: 0.875rem; color: var(--bw-text-secondary);">Plateforme de vote sécurisée avec
+                paiement intégré.</p>
+            </a>
+            <div
+              style="background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid var(--bw-border); box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: transform 0.2s;"
+              onmouseover="this.style.transform='translateX(10px)'" onmouseout="this.style.transform='translateX(0)'">
+              <strong style="display:block; margin-bottom: 0.25rem;">Voyage plus</strong>
+              <p style="font-size: 0.875rem; color: var(--bw-text-secondary);">App mobile inter-villes avec paiement
+                intégré.</p>
+            </div>
+            <div
+              style="background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid var(--bw-border); box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: transform 0.2s;"
+              onmouseover="this.style.transform='translateX(10px)'" onmouseout="this.style.transform='translateX(0)'">
+              <strong style="display:block; margin-bottom: 0.25rem;">Hotel Management</strong>
+              <p style="font-size: 0.875rem; color: var(--bw-text-secondary);">Gestion complète hôtellerie et
+                restauration.</p>
+            </div>
+            <div
+              style="background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid var(--bw-border); box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: transform 0.2s;"
+              onmouseover="this.style.transform='translateX(10px)'" onmouseout="this.style.transform='translateX(0)'">
+              <strong style="display:block; margin-bottom: 0.25rem;">Chez BKR</strong>
+              <p style="font-size: 0.875rem; color: var(--bw-text-secondary);">E-commerce moderne et performant.</p>
+            </div>
+            <div
+              style="background: white; padding: 1.25rem; border-radius: 12px; border: 1px solid var(--bw-border); box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: transform 0.2s;"
+              onmouseover="this.style.transform='translateX(10px)'" onmouseout="this.style.transform='translateX(0)'">
+              <strong style="display:block; margin-bottom: 0.25rem;">Loganalyser</strong>
+              <p style="font-size: 0.875rem; color: var(--bw-text-secondary);">Superviseur de tâches automatisé.</p>
+            </div>
+          </div>
+          <p style="margin-top: 2rem; color: var(--bw-text-muted); font-size: 0.9375rem; font-style: italic;">
+            ...et bien d'autres projets sur mesure conçus pour nos clients.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <footer
+    style="padding: 4rem 1.5rem; background: var(--bw-bg-secondary); border-top: 1px solid var(--bw-border); margin-top: 2rem;">
+    <div class="grid-3" style="max-width: var(--container-max); margin: 0 auto; gap: 3rem">
+      <div>
+        <a href="/" class="brand" style="margin-bottom: 1.5rem; text-decoration: none; color: inherit;">
+          <span>SecureVault</span>
+        </a>
+        <p style="color: var(--bw-text-secondary); line-height: 1.8">La solution leader pour la gestion des identités
+          numériques en entreprise et pour les particuliers. Sécurité maximale, simplicité totale.</p>
+      </div>
+      <div>
+        <h4 style="margin-bottom: 1.25rem">Produit</h4>
+        <ul style="display: grid; gap: 0.75rem; color: var(--bw-text-secondary)">
+          <li>Fonctionnalités</li>
+          <li>Entreprise</li>
+          <li>Tarification</li>
+          <li>Sécurité</li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="margin-bottom: 1.25rem">Support</h4>
+        <ul style="display: grid; gap: 0.75rem;">
+          <li><a href="/documentation.html"
+              style="color: inherit; text-decoration: none; opacity: 0.7">Documentation</a></li>
+          <li><a href="/contact.html" style="color: inherit; text-decoration: none; opacity: 0.7">Contact</a></li>
+          <li style="opacity: 0.7">Status</li>
+          <li style="opacity: 0.7">Vie privée</li>
+        </ul>
+      </div>
+    </div>
+    <div
+      style="max-width: var(--container-max); margin: 4rem auto 0; padding-top: 2rem; border-top: 1px solid var(--bw-border); text-align: center">
+      <p style="color: var(--bw-text-muted); font-size: 0.875rem">© 2026 BELLOX DIGITAL. Conçu avec passion pour la
+        liberté numérique.</p>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    lucide.createIcons();
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      const btn = document.getElementById('menuToggle');
+      menu.classList.toggle('active');
+      btn.classList.toggle('active');
+    }
+
+    function checkSubject(val) {
+      const otherGroup = document.getElementById('other-subject-group');
+      otherGroup.style.display = (val === 'Autre') ? 'block' : 'none';
+      if (val === 'Autre') {
+        document.getElementById('other-subject').focus();
+      }
+    }
+
+    document.getElementById('contact-form').onsubmit = (e) => {
+      e.preventDefault();
+      
+      const emailInput = e.target.querySelector('input[type="email"]');
+      const email = emailInput.value.trim();
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+      if (!emailRegex.test(email)) {
+        alert("Veuillez entrer une adresse email valide.");
+        emailInput.focus();
+        return;
+      }
+
+      const btn = e.target.querySelector('button');
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.textContent = 'Envoi sécurisé en cours...';
+
+      const subject = document.getElementById('contact-subject').value;
+      const other = document.getElementById('other-subject').value;
+      const finalSubject = subject === 'Autre' ? `Autre: ${other}` : subject;
+
+      setTimeout(() => {
+        document.getElementById('contact-form').style.display = 'none';
+        document.getElementById('contact-success').style.display = 'block';
+        lucide.createIcons(); // Re-create icons for the success message
+      }, 1500);
+    };
+  </script>
+</body>
+
+</html>
