@@ -113,5 +113,6 @@ const API = (() => {
     changePassword: (currentPasswordHash, newPasswordHash, newSalt) => 
       request('POST', '/auth/change-password', { currentPasswordHash, newPasswordHash, newSalt }),
     bulkUpdateVault: (items) => request('POST', '/vault/bulk-update', { items }),
+    deleteAccount: (passwordHash, totpCode) => request('POST', '/auth/delete-account', { passwordHash, totpCode }),
   };
 })();

@@ -11,5 +11,11 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   // On laisse passer les requêtes normalement
-  event.respondWith(fetch(event.request));
+  event.respondWith(
+    fetch(event.request).catch(err => {
+      console.warn('[SW] Fetch failed:', err);
+      // Optionnel: retourner une réponse hors-ligne ou laisser échouer proprement
+      throw err;
+    })
+  );
 });

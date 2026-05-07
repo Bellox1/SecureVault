@@ -108,37 +108,37 @@
     </div>
   </main>
 
-<footer style="padding: 4rem 1.5rem; background: var(--bw-bg-secondary); border-top: 1px solid var(--bw-border); margin-top: 2rem;">
-  <div class="grid-3" style="max-width: var(--container-max); margin: 0 auto; gap: 3rem">
-    <div>
-      <a href="/" class="brand" style="margin-bottom: 1.5rem; text-decoration: none; color: inherit;">
-        <span>SecureVault</span>
-      </a>
-      <p style="color: var(--bw-text-secondary); line-height: 1.8">La solution leader pour la gestion des identités numériques en entreprise et pour les particuliers. Sécurité maximale, simplicité totale.</p>
+  <footer style="padding: 4rem 1.5rem; background: var(--bw-bg-secondary); border-top: 1px solid var(--bw-border); margin-top: 2rem;">
+    <div class="grid-3" style="max-width: var(--container-max); margin: 0 auto; gap: 3rem">
+      <div>
+        <a href="/" class="brand" style="margin-bottom: 1.5rem; text-decoration: none; color: inherit;">
+          <span>SecureVault</span>
+        </a>
+        <p style="color: var(--bw-text-secondary); line-height: 1.8">La solution leader pour la gestion des identités numériques en entreprise et pour les particuliers. Sécurité maximale, simplicité totale.</p>
+      </div>
+      <div>
+        <h4 style="margin-bottom: 1.25rem">Produit</h4>
+        <ul style="display: grid; gap: 0.75rem; color: var(--bw-text-secondary)">
+          <li><a href="/#features" style="color: inherit; text-decoration: none;">Fonctionnalités</a></li>
+          <li><a href="/#security" style="color: inherit; text-decoration: none;">Sécurité</a></li>
+          <li>Tarification</li>
+          <li>Sécurité</li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="margin-bottom: 1.25rem">Support</h4>
+        <ul style="display: grid; gap: 0.75rem;">
+          <li><a href="/documentation.html" style="color: var(--bw-primary); text-decoration: none; font-weight: 600;">Documentation</a></li>
+          <li><a href="/contact.html" style="color: var(--bw-primary); text-decoration: none; font-weight: 600;">Contact</a></li>
+          <li style="opacity: 0.7">Status</li>
+          <li><a href="/privacy.html" style="color: var(--bw-primary); text-decoration: none; font-weight: 600;">Politique de Confidentialité</a></li>
+        </ul>
+      </div>
     </div>
-    <div>
-      <h4 style="margin-bottom: 1.25rem">Produit</h4>
-      <ul style="display: grid; gap: 0.75rem; color: var(--bw-text-secondary)">
-        <li>Fonctionnalités</li>
-        <li>Entreprise</li>
-        <li>Tarification</li>
-        <li>Sécurité</li>
-      </ul>
+    <div style="max-width: var(--container-max); margin: 4rem auto 0; padding-top: 2rem; border-top: 1px solid var(--bw-border); text-align: center">
+      <p style="color: var(--bw-text-muted); font-size: 0.875rem">© 2026 BELLOX DIGITAL. Conçu avec passion pour la liberté numérique.</p>
     </div>
-    <div>
-      <h4 style="margin-bottom: 1.25rem">Support</h4>
-      <ul style="display: grid; gap: 0.75rem;">
-        <li><a href="/documentation.html" style="color: inherit; text-decoration: none; opacity: 0.7">Documentation</a></li>
-        <li><a href="/contact.html" style="color: inherit; text-decoration: none; opacity: 0.7">Contact</a></li>
-        <li style="opacity: 0.7">Status</li>
-        <li style="opacity: 0.7">Vie privée</li>
-      </ul>
-    </div>
-  </div>
-  <div style="max-width: var(--container-max); margin: 4rem auto 0; padding-top: 2rem; border-top: 1px solid var(--bw-border); text-align: center">
-    <p style="color: var(--bw-text-muted); font-size: 0.875rem">© 2026 BELLOX DIGITAL. Conçu avec passion pour la liberté numérique.</p>
-  </div>
-</footer>
+  </footer>
 
   <script src="https://unpkg.com/lucide@latest"></script>
   <script>
@@ -147,8 +147,18 @@
     function toggleMobileMenu() {
       const menu = document.getElementById('mobileMenu');
       const btn = document.getElementById('menuToggle');
-      menu.classList.toggle('active');
+      const isActive = menu.classList.toggle('active');
       btn.classList.toggle('active');
+      
+      const menuIcon = btn.querySelector('.icon-menu');
+      const closeIcon = btn.querySelector('.icon-close');
+      if (isActive) {
+        menuIcon.style.display = 'none';
+        closeIcon.style.display = 'block';
+      } else {
+        menuIcon.style.display = 'block';
+        closeIcon.style.display = 'none';
+      }
     }
   </script>
 </body>

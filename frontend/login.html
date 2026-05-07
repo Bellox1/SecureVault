@@ -5,191 +5,182 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Connexion — SecureVault</title>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="manifest" href="/manifest.json">
 </head>
 <body class="auth-page">
 
-<div class="auth-card fade-in">
-  <div class="brand" style="justify-content: center; margin-bottom: 2rem">
-    <span>SecureVault</span>
-  </div>
-  
-  <h1 id="auth-title">Connexion</h1>
-  <p id="auth-subtitle">Identifiez-vous pour déverrouiller votre coffre.</p>
-
-  <div id="remembered-account" style="display:none; text-align: center; margin-bottom: 2rem;">
-    <div style="background: var(--bw-blue-nude); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: var(--bw-primary);">
-      <i data-lucide="user" style="width: 32px; height: 32px;"></i>
-    </div>
-    <div id="display-email" style="font-weight: 600; font-size: 1.125rem; color: var(--bw-text-primary); margin-bottom: 0.25rem;"></div>
-    <button type="button" id="switch-account" class="btn-ghost" style="font-size: 0.8125rem; color: var(--bw-primary); background:none; border:none; cursor:pointer; font-weight: 600;">Utiliser un autre compte</button>
-  </div>
-
-  <div id="auth-error" style="display:none; color: #ef4444; margin-bottom: 2rem; font-size: 0.875rem; background: #fee2e2; padding: 0.75rem; border-radius: 8px">
-    Identifiants incorrects.
-  </div>
-
-  <!-- MFA Group (Hidden) -->
-  <div id="mfa-group" style="display:none; text-align: center; margin-top: 1rem;">
-    <p style="font-size: 0.875rem; margin-bottom: 1.5rem; color: var(--bw-text-secondary);">La double authentification est activée. Entrez le code de votre application.</p>
-    <div class="form-group" style="max-width: 200px; margin: 0 auto">
-      <input type="text" id="mfa-code" class="form-control" placeholder="000000" maxlength="6" style="text-align: center; letter-spacing: 0.5rem; font-size: 1.5rem">
-    </div>
-    <button type="button" id="mfa-submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem">Vérifier le code</button>
-  </div>
-
-  <form id="login-form">
-    <div id="email-group" class="form-group" style="text-align: left">
-      <label class="form-label">Email</label>
-      <input type="email" id="email" class="form-control" placeholder="nom@exemple.com" required>
-    </div>
+  <!-- Wrapper de centrage vertical et horizontal -->
+  <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
     
-    <div id="password-group" class="form-group" style="text-align: left;">
-      <label class="form-label">Mot de passe maître</label>
-      <div class="password-wrapper">
-        <input type="password" id="password" class="form-control" placeholder="••••••••" required>
-        <button type="button" id="toggle-password" class="password-toggle">
-          <i data-lucide="eye"></i>
+    <div class="auth-card fade-in">
+      <div class="brand" style="justify-content: center; margin-bottom: 2rem">
+        <span>SecureVault</span>
+      </div>
+      
+      <h1 id="auth-title">Connexion</h1>
+      <p id="auth-subtitle">Identifiez-vous pour déverrouiller votre coffre.</p>
+
+      <div id="remembered-account" style="display:none; text-align: center; margin-bottom: 2rem;">
+        <div style="background: var(--bw-blue-nude); width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: var(--bw-primary);">
+          <i data-lucide="user" style="width: 32px; height: 32px;"></i>
+        </div>
+        <div id="display-email" style="font-weight: 600; font-size: 1.125rem; color: var(--bw-text-primary); margin-bottom: 0.25rem;"></div>
+        <button type="button" id="switch-account" class="btn-ghost" style="font-size: 0.8125rem; color: var(--bw-primary); background:none; border:none; cursor:pointer; font-weight: 600;">Utiliser un autre compte</button>
+      </div>
+
+      <div id="auth-error" style="display:none; color: #ef4444; margin-bottom: 2rem; font-size: 0.875rem; background: #fee2e2; padding: 0.75rem; border-radius: 8px">
+        Identifiants incorrects.
+      </div>
+
+      <!-- MFA Group (Hidden) -->
+      <div id="mfa-group" style="display:none; text-align: center; margin-top: 1rem;">
+        <p style="font-size: 0.875rem; margin-bottom: 1.5rem; color: var(--bw-text-secondary);">La double authentification est activée. Entrez le code de votre application.</p>
+        <div class="form-group" style="max-width: 200px; margin: 0 auto">
+          <input type="text" id="mfa-code" class="form-control" placeholder="000000" maxlength="6" style="text-align: center; letter-spacing: 0.5rem; font-size: 1.5rem">
+        </div>
+        <button type="button" id="mfa-submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem">Vérifier le code</button>
+      </div>
+
+      <form id="login-form">
+        <div id="email-group" class="form-group" style="text-align: left">
+          <label class="form-label">Email</label>
+          <input type="email" id="email" class="form-control" placeholder="nom@exemple.com" required>
+        </div>
+        
+        <div id="password-group" class="form-group" style="text-align: left;">
+          <label class="form-label">Mot de passe maître</label>
+          <div class="password-wrapper">
+            <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+            <button type="button" id="toggle-password" class="password-toggle">
+              <i data-lucide="eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" id="login-submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem">Se connecter</button>
+      </form>
+
+      <div class="auth-footer" id="auth-footer">
+        <button type="button" onclick="launchAppMode()" class="btn btn-ghost" style="width: 100%; margin-bottom: 1rem; border: 1px solid var(--bw-border); font-size: 0.8125rem;">
+          <i data-lucide="monitor" style="width:14px; margin-right:8px"></i> Lancer en mode Bureau
         </button>
+        <p>Nouveau membre ? <a href="/register.html">Créer un compte</a></p>
+        <a href="/" style="display: inline-block; margin-top: 1.5rem; color: var(--bw-text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em">← Retour à l'accueil</a>
       </div>
     </div>
 
-    <button type="submit" id="login-submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem">Se connecter</button>
-  </form>
+    <!-- Le copyright est ici, hors de la carte mais centré dessous -->
+    <p style="text-align: center; margin-top: 1.5rem; color: var(--bw-text-muted); font-size: 0.85rem; padding-bottom: 2rem;">
+      &copy; 2026 BELLOX DIGITAL &bull; <a href="privacy.html" style="color: inherit; text-decoration: underline;">Politique de Confidentialité</a>
+    </p>
 
-  <div class="auth-footer" id="auth-footer">
-    <button type="button" onclick="launchAppMode()" class="btn btn-ghost" style="width: 100%; margin-bottom: 1rem; border: 1px solid var(--bw-border); font-size: 0.8125rem;">
-      <i data-lucide="monitor" style="width:14px; margin-right:8px"></i> Lancer en mode Bureau
-    </button>
-    <p>Nouveau membre ? <a href="/register.html">Créer un compte</a></p>
-    <a href="/" style="display: inline-block; margin-top: 1.5rem; color: var(--bw-text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em">← Retour à l'accueil</a>
   </div>
-</div>
 
-<script>
-function launchAppMode() {
-  const width = 1200;
-  const height = 800;
-  const left = (window.screen.width / 2) - (width / 2);
-  const top = (window.screen.height / 2) - (height / 2);
-  
-  window.open(window.location.href, 'SecureVault', 
-    `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes`
-  );
-}
-</script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/js/crypto.js"></script>
+  <script src="/js/api.js?v=2"></script>
+  <script>
+    lucide.createIcons();
+    const $ = id => document.getElementById(id);
 
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="/js/crypto.js"></script>
-<script src="/js/api.js?v=2"></script>
-<script>
-lucide.createIcons();
-const $ = id => document.getElementById(id);
-
-let pendingMfaToken = null;
-let currentMp = null;
-let currentSalt = null;
-
-// Remember Email Logic
-const savedEmail = localStorage.getItem('sv_remembered_email');
-if (savedEmail) {
-  $('email').value = savedEmail;
-  $('email-group').style.display = 'none';
-  $('display-email').textContent = savedEmail;
-  $('remembered-account').style.display = 'block';
-  $('auth-title').textContent = 'Bon retour';
-  $('auth-subtitle').textContent = 'Entrez votre mot de passe pour déverrouiller.';
-  setTimeout(() => $('password').focus(), 100);
-}
-
-$('switch-account').onclick = () => {
-  localStorage.removeItem('sv_remembered_email');
-  $('email').value = '';
-  $('email-group').style.display = 'block';
-  $('remembered-account').style.display = 'none';
-  $('auth-title').textContent = 'Connexion';
-  $('auth-subtitle').textContent = 'Identifiez-vous pour déverrouiller votre coffre.';
-  $('email').focus();
-};
-
-const toggleBtn = $('toggle-password');
-const passwordInput = $('password');
-
-toggleBtn.onclick = () => {
-  const isPassword = passwordInput.type === 'password';
-  passwordInput.type = isPassword ? 'text' : 'password';
-  toggleBtn.innerHTML = `<i data-lucide="${isPassword ? 'eye-off' : 'eye'}"></i>`;
-  lucide.createIcons();
-};
-
-$('login-form').onsubmit = async (e) => {
-  e.preventDefault();
-  const email = $('email').value;
-  const password = $('password').value;
-  const btn = $('login-submit');
-  const originalText = btn.textContent;
-  
-  $('auth-error').style.display = 'none';
-  btn.disabled = true;
-  btn.textContent = 'Vérification...';
-
-  try {
-    const { salt } = await API.getSalt(email);
-    const passwordHash = await Crypto.deriveAuthHash(password, salt);
-    const res = await API.login(email, passwordHash);
-    
-    currentMp = password;
-    currentSalt = salt;
-
-    if (res.mfaRequired) {
-      pendingMfaToken = res.mfaToken;
-      $('login-form').style.display = 'none';
-      $('auth-subtitle').style.display = 'none';
-      $('mfa-group').style.display = 'block';
-      $('auth-title').textContent = 'Double vérification';
-      $('mfa-code').focus();
-    } else {
-      finalizeLogin(email, salt, password);
+    function launchAppMode() {
+      const width = 1200;
+      const height = 800;
+      const left = (window.screen.width / 2) - (width / 2);
+      const top = (window.screen.height / 2) - (height / 2);
+      window.open(window.location.href, 'SecureVault', 
+        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes`
+      );
     }
-  } catch (err) {
-    $('auth-error').style.display = 'block';
-    $('auth-error').textContent = err.message || 'Identifiants incorrects.';
-    btn.disabled = false;
-    btn.textContent = originalText;
-  }
-};
 
-$('mfa-submit').onclick = async () => {
-  const code = $('mfa-code').value;
-  if (!code || code.length !== 6) return;
+    let pendingMfaToken = null;
+    let currentMp = null;
+    let currentSalt = null;
 
-  const btn = $('mfa-submit');
-  btn.disabled = true;
-  btn.textContent = 'Vérification...';
+    // Remember Email Logic
+    const savedEmail = localStorage.getItem('sv_remembered_email');
+    if (savedEmail) {
+      $('email').value = savedEmail;
+      $('email-group').style.display = 'none';
+      $('display-email').textContent = savedEmail;
+      $('remembered-account').style.display = 'block';
+      $('auth-title').textContent = 'Bon retour';
+      $('auth-subtitle').textContent = 'Entrez votre mot de passe pour déverrouiller.';
+      setTimeout(() => $('password').focus(), 100);
+    }
 
-  try {
-    await API.loginMfa(pendingMfaToken, code);
-    finalizeLogin($('email').value, currentSalt, currentMp);
-  } catch (err) {
-    $('auth-error').style.display = 'block';
-    $('auth-error').textContent = err.message || 'Code incorrect.';
-    btn.disabled = false;
-    btn.textContent = 'Vérifier le code';
-  }
-};
+    $('switch-account').onclick = () => {
+      localStorage.removeItem('sv_remembered_email');
+      $('email').value = '';
+      $('email-group').style.display = 'block';
+      $('remembered-account').style.display = 'none';
+      $('auth-title').textContent = 'Connexion';
+      $('auth-subtitle').textContent = 'Identifiez-vous pour déverrouiller votre coffre.';
+      $('email').focus();
+    };
 
-function finalizeLogin(email, salt, password) {
-  localStorage.setItem('sv_remembered_email', email);
-  sessionStorage.setItem('sv_email', email);
-  sessionStorage.setItem('sv_salt', salt);
-  sessionStorage.setItem('sv_tmp_mp', password);
-  window.location.href = '/app.html';
-}
-</script>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
-  }
-</script>
+    $('toggle-password').onclick = () => {
+      const inp = $('password');
+      const isPass = inp.type === 'password';
+      inp.type = isPass ? 'text' : 'password';
+      $('toggle-password').innerHTML = `<i data-lucide="${isPass ? 'eye-off' : 'eye'}"></i>`;
+      lucide.createIcons();
+    };
+
+    $('login-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const email = $('email').value;
+      const password = $('password').value;
+      const btn = $('login-submit');
+      const originalText = btn.textContent;
+      
+      $('auth-error').style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Vérification...';
+
+      try {
+        const { salt } = await API.post('/auth/salt', { email });
+        const passwordHash = await Crypto.deriveAuthHash(password, salt);
+        const res = await API.login(email, passwordHash);
+        
+        currentMp = password;
+        currentSalt = salt;
+
+        if (res.mfaRequired) {
+          pendingMfaToken = res.mfaToken;
+          $('login-form').style.display = 'none';
+          $('auth-subtitle').style.display = 'none';
+          $('mfa-group').style.display = 'block';
+          $('auth-title').textContent = 'Double vérification';
+          $('mfa-code').focus();
+        } else {
+          finalizeLogin(email, salt, password);
+        }
+      } catch (err) {
+        $('auth-error').style.display = 'block';
+        $('auth-error').textContent = err.message || 'Identifiants incorrects.';
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    };
+
+    $('mfa-submit').onclick = async () => {
+      const code = $('mfa-code').value;
+      if (!code || code.length !== 6) return;
+      try {
+        await API.loginMfa(pendingMfaToken, code);
+        finalizeLogin($('email').value, currentSalt, currentMp);
+      } catch (err) {
+        alert('Code incorrect.');
+      }
+    };
+
+    function finalizeLogin(email, salt, password) {
+      localStorage.setItem('sv_remembered_email', email);
+      sessionStorage.setItem('sv_email', email);
+      sessionStorage.setItem('sv_salt', salt);
+      sessionStorage.setItem('sv_tmp_mp', password);
+      window.location.href = '/app.html';
+    }
+  </script>
 </body>
 </html>

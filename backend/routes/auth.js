@@ -496,4 +496,58 @@ router.post('/change-password', authenticate, async (req, res) => {
   }
 });
 
+// ─── POST /api/auth/delete-account ───────────────────────────────────────────
+router.post('/delete-account', authenticate, async (req, res) => {
+  const { passwordHash, totpCode } = req.body;
+  
+  if (!passwordHash) {
+    return res.status(400).json({ error: 'Mot de passe maître requis pour la suppression.' });
+  }
+
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+    if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+
+    // 1. Verify Master Password
+    const isValid = await argon2.verify(user.password_hash, passwordHash);
+    if (!isValid) {
+      logger.warn('Account deletion rejected: incorrect password', { userId: user.id });
+      return res.status(401).json({ error: 'Mot de passe maître incorrect.' });
+    }
+
+    // 2. Verify TOTP if enabled
+    if (user.is_totp_enabled) {
+      if (!totpCode) {
+        return res.status(400).json({ error: 'Code 2FA requis pour la suppression.' });
+      }
+      const isTotpValid = authenticator.check(totpCode, user.totp_secret);
+      if (!isTotpValid) {
+        logger.warn('Account deletion rejected: incorrect 2FA code', { userId: user.id });
+        return res.status(401).json({ error: 'Code 2FA incorrect.' });
+      }
+    }
+
+    // 3. Purge everything
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id);
+    db.prepare('DELETE FROM vault_items WHERE user_id = ?').run(user.id);
+    db.prepare('DELETE FROM folders WHERE user_id = ?').run(user.id);
+    db.prepare('DELETE FROM users WHERE id = ?').run(user.id);
+
+    // Clear session cookie
+    res.clearCookie('sv_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+    });
+
+    logger.info('Account deleted definitively', { userId: user.id, email: user.email });
+    res.json({ message: 'Votre compte et toutes vos données ont été définitivement supprimés.' });
+
+  } catch (err) {
+    logger.error('Account deletion error', { error: err.message, userId: req.user.id });
+    res.status(500).json({ error: 'Erreur lors de la suppression du compte.' });
+  }
+});
+
 module.exports = router;

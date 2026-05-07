@@ -282,6 +282,19 @@ const App = (() => {
         lucide.createIcons();
       };
     });
+    
+    // Account deletion
+    const openDeleteAccountBtn = $('open-delete-account-modal');
+    if (openDeleteAccountBtn) openDeleteAccountBtn.onclick = openAccountDeleteModal;
+
+    const closeDeleteAccountBtn = $('close-delete-account-modal');
+    if (closeDeleteAccountBtn) closeDeleteAccountBtn.onclick = closeAccountDeleteModal;
+
+    const cancelDeleteAccountBtn = $('cancel-delete-account-modal');
+    if (cancelDeleteAccountBtn) cancelDeleteAccountBtn.onclick = closeAccountDeleteModal;
+
+    const confirmDeleteAccountBtn = $('confirm-delete-account-btn');
+    if (confirmDeleteAccountBtn) confirmDeleteAccountBtn.onclick = handleAccountDeletion;
 
     // Tool Generator Events
     const toolGenRefreshBtn = $('tool-gen-refresh-btn');
@@ -1522,6 +1535,59 @@ const App = (() => {
       });
       return item;
     });
+  }
+
+  // ─── Account Deletion ───────────────────────────────────────────────────────
+  
+  function openAccountDeleteModal() {
+    $('delete-account-password').value = '';
+    $('delete-account-2fa').value = '';
+    
+    // Check if 2FA is enabled to show/hide the field
+    const is2FA = $('2fa-status-on').style.display !== 'none';
+    showEl($('delete-account-2fa-group'), is2FA ? 'block' : 'none');
+    
+    showEl($('delete-account-modal-overlay'), 'flex');
+  }
+
+  function closeAccountDeleteModal() {
+    hideEl($('delete-account-modal-overlay'));
+  }
+
+  async function handleAccountDeletion() {
+    const password = $('delete-account-password').value;
+    const totpCode = $('delete-account-2fa').value;
+    const is2FA = $('2fa-status-on').style.display !== 'none';
+
+    if (!password) return showToast('Veuillez saisir votre mot de passe maître.', 'warning');
+    if (is2FA && !totpCode) return showToast('Veuillez saisir votre code 2FA.', 'warning');
+
+    if (!confirm('ÊTES-VOUS ABSOLUMENT SÛR ? Cette action supprimera définitivement votre compte et TOUT son contenu. Aucune récupération possible.')) return;
+
+    const btn = $('confirm-delete-account-btn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Suppression en cours...';
+
+    try {
+      // Zero-knowledge: derive the auth hash locally
+      const salt = sessionStorage.getItem('sv_salt');
+      const passwordHash = await Crypto.deriveAuthHash(password, salt);
+
+      const res = await API.deleteAccount(passwordHash, totpCode);
+      showToast(res.message, 'success');
+      
+      // Cleanup and redirect after a short delay
+      setTimeout(() => {
+        sessionStorage.clear();
+        window.location.replace('/index.html?account_deleted=true');
+      }, 2000);
+
+    } catch (err) {
+      showToast(err.message || 'Erreur lors de la suppression.', 'error');
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
   }
 
   // ─── Public Interface ────────────────────────────────────────────────────────

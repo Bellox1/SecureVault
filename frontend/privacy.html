@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Politique de Confidentialité — SecureVault</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="icon" href="favicon.ico">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .privacy-hero {
+            padding: 100px 0 60px;
+            background: var(--bw-bg-secondary);
+            border-bottom: 1px solid var(--bw-border);
+            margin-bottom: 60px;
+        }
+        .content-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+        .privacy-nav {
+            position: sticky;
+            top: 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .privacy-nav a {
+            color: var(--bw-text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .privacy-nav a:hover, .privacy-nav a.active {
+            color: var(--bw-primary);
+            font-weight: 600;
+        }
+        .policy-content {
+            max-width: 900px;
+        }
+        .policy-section {
+            margin-bottom: 60px;
+            scroll-margin-top: 120px;
+        }
+        .policy-section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 24px;
+            color: var(--bw-text-primary);
+        }
+        .policy-section p {
+            font-size: 1.05rem;
+            color: var(--bw-text-secondary);
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+        .policy-section ul {
+            list-style: disc;
+            padding-left: 20px;
+            color: var(--bw-text-secondary);
+            margin-bottom: 20px;
+        }
+        .policy-section li {
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 992px) {
+            .content-grid { grid-template-columns: 1fr; }
+            .privacy-nav { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header identique à index.html -->
+    <header class="landing-header">
+      <a href="/" class="brand" style="text-decoration: none; color: inherit;">
+        <span>SecureVault</span>
+      </a>
+      
+      <!-- Desktop Nav -->
+      <nav class="nav-links">
+        <a href="/#features">Fonctionnalités</a>
+        <a href="/#security">Sécurité</a>
+        <a href="/documentation.html">Documentation</a>
+        <a href="/login.html" class="btn btn-ghost btn-sm">Se connecter</a>
+        <a href="/register.html" class="btn btn-primary btn-sm">Démarrer gratuitement</a>
+      </nav>
+
+      <!-- Mobile Toggle -->
+      <button class="mobile-menu-btn" onclick="toggleMobileMenu()" id="menuToggle">
+        <i data-lucide="menu" class="icon-menu"></i>
+        <i data-lucide="x" class="icon-close" style="display: none"></i>
+      </button>
+    </header>
+
+    <!-- Mobile Dropdown Menu -->
+    <div class="mobile-dropdown" id="mobileMenu">
+      <a href="/#features" onclick="toggleMobileMenu()">Fonctionnalités</a>
+      <a href="/#security" onclick="toggleMobileMenu()">Sécurité</a>
+      <a href="/documentation.html" onclick="toggleMobileMenu()">Documentation</a>
+      <hr style="opacity: 0.05; margin: 0.5rem 0">
+      <div style="display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem">
+        <a href="/login.html" class="btn btn-ghost btn-sm" style="justify-content: flex-start; padding: 0.5rem 0">Se connecter</a>
+        <a href="/register.html" class="btn btn-primary btn-sm">Démarrer gratuitement</a>
+      </div>
+    </div>
+
+    <div class="privacy-hero">
+        <div class="container text-center">
+            <h1>Politique de Confidentialité</h1>
+            <p class="section-subtitle" style="margin: 20px auto 0">Dernière mise à jour : 7 mai 2026. Chez SecureVault, votre vie privée est notre priorité absolue.</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="content-grid">
+            <aside class="privacy-nav">
+                <a href="#intro" class="active">Introduction</a>
+                <a href="#security">Sécurité & Chiffrement</a>
+                <a href="#data">Collecte de données</a>
+                <a href="#usage">Utilisation</a>
+                <a href="#rights">Vos droits</a>
+                <a href="#contact">Contact</a>
+            </aside>
+
+            <main class="policy-content">
+                <section id="intro" class="policy-section">
+                    <h2>Introduction</h2>
+                    <p>Cette Politique de Confidentialité décrit comment SecureVault collecte, utilise et protège vos informations. En utilisant notre service, vous acceptez les pratiques décrites dans ce document.</p>
+                    <p>Nous avons conçu SecureVault pour minimiser la collecte de données personnelles et maximiser votre autonomie sur vos propres secrets.</p>
+                </section>
+
+                <section id="security" class="policy-section">
+                    <h2>Architecture de Sécurité</h2>
+                    <p>La base de notre service est le principe du <strong>Zero-Knowledge</strong>. Cela signifie que :</p>
+                    <ul>
+                        <li>Toutes vos données sensibles sont chiffrées localement sur votre appareil avant d'être envoyées sur nos serveurs.</li>
+                        <li>Nous n'avons jamais accès à votre mot de passe maître.</li>
+                        <li>Nous ne pouvons pas déchiffrer vos mots de passe, même sous contrainte technique ou légale, car nous ne possédons pas vos clés privées.</li>
+                    </ul>
+                </section>
+
+                <section id="data" class="policy-section">
+                    <h2>Données que nous collectons</h2>
+                    <p>Nous limitons strictement les données collectées à ce qui est nécessaire pour fournir le service :</p>
+                    <ul>
+                        <li><strong>Informations de compte :</strong> Votre adresse e-mail pour l'identification et la récupération de compte.</li>
+                        <li><strong>Données de coffre-fort :</strong> Vos données chiffrées (illisibles pour nous).</li>
+                        <li><strong>Métadonnées techniques :</strong> Informations de diagnostic anonymisées pour améliorer les performances de l'application.</li>
+                    </ul>
+                </section>
+
+                <section id="usage" class="policy-section">
+                    <h2>Utilisation des données</h2>
+                    <p>Nous n'utilisons vos données que pour assurer le fonctionnement de votre coffre-fort SecureVault. Nous ne vendons jamais vos données personnelles à des tiers et nous ne les utilisons pas à des fins publicitaires.</p>
+                </section>
+
+                <section id="rights" class="policy-section">
+                    <h2>Vos Droits</h2>
+                    <p>Conformément au RGPD et aux lois internationales sur la protection des données, vous disposez des droits suivants :</p>
+                    <ul>
+                        <li>Droit d'accès et d'exportation de vos données chiffrées.</li>
+                        <li>Droit à l'effacement définitif de votre compte et de toutes les données associées de nos serveurs.</li>
+                    </ul>
+                </section>
+
+                <section id="contact" class="policy-section">
+                    <h2>Contact</h2>
+                    <p>Si vous avez des questions concernant cette politique ou nos pratiques de sécurité, vous pouvez nous contacter à l'adresse suivante :</p>
+                    <p class="highlight" style="color: var(--bw-primary); font-weight: 700;">belloxdigital@gmail.com</p>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer identique à index.html -->
+    <footer style="padding: 4rem 1.5rem; background: var(--bw-bg-secondary); border-top: 1px solid var(--bw-border)">
+      <div class="grid-3" style="max-width: var(--container-max); margin: 0 auto; gap: 3rem">
+        <div>
+          <a href="/" class="brand" style="margin-bottom: 1.5rem; text-decoration: none; color: inherit;">
+            <span>SecureVault</span>
+          </a>
+          <p style="color: var(--bw-text-secondary); line-height: 1.8">La solution leader pour la gestion des identités numériques en entreprise et pour les particuliers. Sécurité maximale, simplicité totale.</p>
+        </div>
+        <div>
+          <h4 style="margin-bottom: 1.25rem">Produit</h4>
+          <ul style="display: grid; gap: 0.75rem; color: var(--bw-text-secondary)">
+            <li><a href="/#features" style="color: inherit; text-decoration: none;">Fonctionnalités</a></li>
+            <li><a href="/#security" style="color: inherit; text-decoration: none;">Sécurité</a></li>
+            <li>Tarification</li>
+            <li>Sécurité</li>
+          </ul>
+        </div>
+        <div>
+          <h4 style="margin-bottom: 1.25rem">Support</h4>
+          <ul style="display: grid; gap: 0.75rem;">
+            <li><a href="/documentation.html" style="color: var(--bw-primary); text-decoration: none; font-weight: 600;">Documentation</a></li>
+            <li><a href="/contact.html" style="color: var(--bw-primary); text-decoration: none; font-weight: 600;">Contact</a></li>
+            <li style="opacity: 0.7">Status</li>
+            <li><a href="/privacy.html" style="color: var(--bw-primary); text-decoration: none; font-weight: 600;">Politique de Confidentialité</a></li>
+          </ul>
+        </div>
+      </div>
+      <div style="max-width: var(--container-max); margin: 4rem auto 0; padding-top: 2rem; border-top: 1px solid var(--bw-border); text-align: center">
+        <p style="color: var(--bw-text-muted); font-size: 0.875rem">© 2026 BELLOX DIGITAL. Conçu avec passion pour la liberté numérique.</p>
+      </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Mobile Menu Toggle
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            const btn = document.getElementById('menuToggle');
+            const isActive = menu.classList.toggle('active');
+            btn.classList.toggle('active');
+            
+            // Toggle icons
+            const menuIcon = btn.querySelector('.icon-menu');
+            const closeIcon = btn.querySelector('.icon-close');
+            if (isActive) {
+                menuIcon.style.display = 'none';
+                closeIcon.style.display = 'block';
+            } else {
+                menuIcon.style.display = 'block';
+                closeIcon.style.display = 'none';
+            }
+        }
+
+        // Scroll Spy pour la navigation latérale
+        const sections = document.querySelectorAll('.policy-section');
+        const navLinks = document.querySelectorAll('.privacy-nav a');
+
+        window.addEventListener('scroll', () => {
+            let current = "";
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= sectionTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href').includes(current)) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

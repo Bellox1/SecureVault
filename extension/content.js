@@ -17,9 +17,16 @@ function detectLoginFields() {
 }
 
 // Exécuter la détection au chargement et lors de changements dans le DOM
-detectLoginFields();
-const observer = new MutationObserver(detectLoginFields);
-observer.observe(document.body, { childList: true, subtree: true });
+function initObserver() {
+  if (document.body) {
+    detectLoginFields();
+    const observer = new MutationObserver(detectLoginFields);
+    observer.observe(document.body, { childList: true, subtree: true });
+  } else {
+    setTimeout(initObserver, 50);
+  }
+}
+initObserver();
 
 // Écouter les messages venant de l'extension pour l'autoremplissage
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
