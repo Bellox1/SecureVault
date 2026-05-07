@@ -24,9 +24,9 @@
       <span>SecureVault</span>
     </a>
     <nav class="nav-links">
-      <a href="/#features">Fonctionnalités</a>
-      <a href="/#security">Sécurité</a>
-      <a href="/documentation.html">Docs</a>
+      <a href="/">Accueil</a>
+      <a href="/documentation.html">Documentation</a>
+      <a href="/contact.html">Contact</a>
       <a href="/login.html" class="btn btn-ghost btn-sm">Se connecter</a>
       <a href="/register.html" class="btn btn-primary btn-sm">Démarrer gratuitement</a>
     </nav>
@@ -39,9 +39,9 @@
 
   <!-- Mobile Dropdown Menu -->
   <div class="mobile-dropdown" id="mobileMenu">
-    <a href="/#features" onclick="toggleMobileMenu()">Fonctionnalités</a>
-    <a href="/#security" onclick="toggleMobileMenu()">Sécurité</a>
+    <a href="/" onclick="toggleMobileMenu()">Accueil</a>
     <a href="/documentation.html" onclick="toggleMobileMenu()">Documentation</a>
+    <a href="/contact.html" onclick="toggleMobileMenu()">Contact</a>
     <hr style="opacity: 0.05; margin: 0.5rem 0">
     <div style="display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem">
       <a href="/login.html" class="btn btn-ghost btn-sm" style="justify-content: flex-start; padding: 0.5rem 0">Se
@@ -69,7 +69,18 @@
             </div>
             <div>
               <strong style="display: block; margin-bottom: 0.25rem;">Email</strong>
-              <span style="color: var(--bw-text-secondary);">support@bellox.digital</span>
+              <a href="mailto:contact@belloxdigital.com" style="color: var(--bw-text-secondary); text-decoration: none;">contact@belloxdigital.com</a>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 1rem;">
+            <div
+              style="flex-shrink: 0; width: 48px; height: 48px; background: white; border-radius: 12px; border: 1px solid var(--bw-border); display: flex; align-items: center; justify-content: center; color: var(--bw-primary)">
+              <i data-lucide="message-circle"></i>
+            </div>
+            <div>
+              <strong style="display: block; margin-bottom: 0.25rem;">WhatsApp</strong>
+              <a href="https://wa.me/2250146862536" target="_blank" style="color: var(--bw-text-secondary); text-decoration: none;">+225 01 46 86 25 36</a>
             </div>
           </div>
 
@@ -264,7 +275,7 @@
       }
     }
 
-    document.getElementById('contact-form').onsubmit = (e) => {
+    document.getElementById('contact-form').onsubmit = async (e) => {
       e.preventDefault();
       
       const emailInput = e.target.querySelector('input[type="email"]');
@@ -277,20 +288,38 @@
         return;
       }
 
-      const btn = e.target.querySelector('button');
-      const originalText = btn.innerHTML;
-      btn.disabled = true;
-      btn.textContent = 'Envoi sécurisé en cours...';
-
+      const name = e.target.querySelector('input[type="text"]').value;
       const subject = document.getElementById('contact-subject').value;
       const other = document.getElementById('other-subject').value;
       const finalSubject = subject === 'Autre' ? `Autre: ${other}` : subject;
+      const message = document.getElementById('contact-message').value;
 
-      setTimeout(() => {
-        document.getElementById('contact-form').style.display = 'none';
-        document.getElementById('contact-success').style.display = 'block';
-        lucide.createIcons(); // Re-create icons for the success message
-      }, 1500);
+      const btn = e.target.querySelector('button');
+      btn.disabled = true;
+      btn.textContent = 'Envoi sécurisé en cours...';
+
+      try {
+        const response = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, subject: finalSubject, message })
+        });
+
+        if (response.ok) {
+          document.getElementById('contact-form').style.display = 'none';
+          document.getElementById('contact-success').style.display = 'block';
+          lucide.createIcons();
+        } else {
+          const err = await response.json();
+          alert("Erreur: " + (err.error || "Échec de l'envoi"));
+          btn.disabled = false;
+          btn.textContent = 'Réessayer';
+        }
+      } catch (err) {
+        alert("Erreur réseau. Vérifiez votre connexion.");
+        btn.disabled = false;
+        btn.textContent = 'Réessayer';
+      }
     };
   </script>
 </body>

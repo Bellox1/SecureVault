@@ -4,12 +4,47 @@ const logger = require('./logger');
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true, // true for 465, false for other ports
+  secure: true,
+  family: 4, // Forcer IPv4 pour éviter les erreurs ENETUNREACH
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
   }
 });
+
+/**
+ * Envoie un message de contact à l'administrateur
+ */
+async function sendContactEmail(senderName, senderEmail, subject, content) {
+  const mailOptions = {
+    from: `"SecureVault Contact" <${process.env.SMTP_USER}>`,
+    to: process.env.SMTP_USER,
+    replyTo: senderEmail,
+    subject: `[Contact] ${subject}`,
+    html: `
+      <div style="font-family: sans-serif; color: #333; line-height: 1.6;">
+        <h2 style="color: #F97316;">Nouveau message de contact</h2>
+        <p><strong>Nom :</strong> ${senderName}</p>
+        <p><strong>Email :</strong> ${senderEmail}</p>
+        <p><strong>Sujet :</strong> ${subject}</p>
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #eee;">
+          <p><strong>Message :</strong></p>
+          <p style="white-space: pre-wrap;">${content}</p>
+        </div>
+        <p style="margin-top: 2rem; font-size: 0.75rem; color: #999;">— Envoyé via le formulaire de contact SecureVault</p>
+      </div>
+    `
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.info('Contact email sent', { messageId: info.messageId });
+    return true;
+  } catch (error) {
+    logger.error('Failed to send contact email', { error: error.message });
+    return false;
+  }
+}
 
 /**
  * Envoie un email d'invitation/vérification
@@ -45,5 +80,6 @@ async function sendInviteEmail(to, inviteUrl) {
 }
 
 module.exports = {
-  sendInviteEmail
+  sendInviteEmail,
+  sendContactEmail
 };

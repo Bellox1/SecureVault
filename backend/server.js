@@ -76,6 +76,22 @@ app.use('/api/auth', authRoutes);
 app.use('/api/vault', vaultRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Route pour le formulaire de contact
+const mailer = require('./mailer');
+app.post('/api/contact', async (req, res) => {
+  const { name, email, subject, message } = req.body;
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({ error: 'Tous les champs sont obligatoires.' });
+  }
+
+  const sent = await mailer.sendContactEmail(name, email, subject, message);
+  if (sent) {
+    res.json({ message: 'Message envoyé avec succès.' });
+  } else {
+    res.status(500).json({ error: "Échec de l'envoi du message." });
+  }
+});
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
