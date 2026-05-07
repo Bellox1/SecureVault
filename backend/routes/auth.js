@@ -69,10 +69,13 @@ router.post('/register-invite',
     const normalizedEmail = sanitizeEmail(email);
 
     try {
-      // Check existing user
+      // Check existing user — feedback explicite
       const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
       if (existing) {
-        return res.json({ message: 'Si cet email est valide, vous recevrez un lien.' });
+        return res.status(409).json({
+          error: 'Un compte est déjà associé à cet email.',
+          code: 'EMAIL_ALREADY_EXISTS'
+        });
       }
 
       // 1. Récupérer l'ancien lien (pour cooldown) et l'invalider immédiatement
