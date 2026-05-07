@@ -75,17 +75,22 @@ router.post('/register-invite',
         return res.json({ message: 'Si cet email est valide, vous recevrez un lien.' });
       }
 
-      // 1. Invalidation des anciens liens et anti-spam (60s)
+      // 1. Récupérer l'ancien lien (pour cooldown) et l'invalider immédiatement
       const lastPending = db.prepare('SELECT expires_at FROM pending_registrations WHERE email = ?').get(normalizedEmail);
+      
       if (lastPending) {
-        const timeSinceCreation = 30 * 60 * 1000 - (lastPending.expires_at - Date.now());
-        if (timeSinceCreation < 60 * 1000) { // Moins de 60s
-           return res.json({ message: 'Un email a déjà été envoyé récemment. Veuillez patienter une minute.' });
-        }
-        // Invalider l'ancien lien explicitement
+        const timeSinceCreation = (30 * 60 * 1000) - (lastPending.expires_at - Date.now());
+        
+        // Invalider l'ancien lien dans tous les cas
         db.prepare('DELETE FROM pending_registrations WHERE email = ?').run(normalizedEmail);
+        
+        // Cooldown de 60 secondes : on invalide mais on n'en envoie pas un nouveau
+        if (timeSinceCreation < 60 * 1000) {
+          return res.json({ message: 'Un email a déjà été envoyé récemment. Veuillez patienter une minute avant d\'en demander un nouveau.' });
+        }
       }
 
+      // 2. Créer un nouveau token
       const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = Date.now() + 30 * 60 * 1000; // 30 mins
 
