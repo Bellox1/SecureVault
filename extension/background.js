@@ -1,9 +1,4 @@
-// Background script for SecureVault
 importScripts('crypto_utils.js');
-
-let vaultData = null;
-let isAuthenticated = false;
-let currentEmail = null;
 
 const API_URL = "http://localhost:3001/api";
 
@@ -20,6 +15,35 @@ async function logToServer(level, message, data = {}) {
   }
 }
 
+let vaultData = null;
+let isAuthenticated = false;
+let currentEmail = null;
+let tempMasterPassword = null;
+let tempSalt = null;
+
+// --- Persistance de session pour Manifest V3 ---
+async function saveSession() {
+  await chrome.storage.session.set({
+    isAuthenticated,
+    vaultData,
+    currentEmail,
+    tempMasterPassword,
+    tempSalt
+  });
+}
+
+async function loadSession() {
+  const data = await chrome.storage.session.get(null);
+  isAuthenticated = data.isAuthenticated || false;
+  vaultData = data.vaultData || null;
+  currentEmail = data.currentEmail || null;
+  tempMasterPassword = data.tempMasterPassword || null;
+  tempSalt = data.tempSalt || null;
+}
+
+// Charger la session au démarrage du worker
+loadSession();
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "LOGIN") {
     handleLogin(request.email, request.password).then(sendResponse);
@@ -27,20 +51,90 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   
   if (request.action === "GET_VAULT") {
-    sendResponse({ isAuthenticated, data: vaultData, email: currentEmail });
+    // S'assurer qu'on a les dernières données
+    loadSession().then(() => {
+      sendResponse({ isAuthenticated, data: vaultData, email: currentEmail });
+    });
+    return true;
   }
 
   if (request.action === "LOGOUT") {
     isAuthenticated = false;
     vaultData = null;
     currentEmail = null;
+    tempMasterPassword = null;
+    tempSalt = null;
+    saveSession().then(() => sendResponse({ success: true }));
+    return true;
+  }
+  if (request.action === "SYNC_FROM_PAGE") {
+    isAuthenticated = true;
+    currentEmail = request.email;
+    tempSalt = request.salt;
+    tempMasterPassword = request.mp;
+    saveSession();
     sendResponse({ success: true });
+    return true;
+  }
+
+  if (request.action === "CREATE_VAULT_ITEM") {
+    handleCreateVaultItem(request.item).then(sendResponse);
+    return true;
+  }
+  
+  if (request.action === "SAVE_GENERATED_PASSWORD") {
+    handleSaveGenerated(request.credentials).then(sendResponse);
+    return true;
   }
 });
 
-// Stockage temporaire du mot de passe maître pour injection (effacé après usage)
-let tempMasterPassword = null;
-let tempSalt = null;
+async function handleSaveGenerated(creds) {
+  if (!isAuthenticated) return { success: false, error: "Non authentifié" };
+  
+  try {
+    // 1. Dériver la clé de chiffrement
+    const encryptionKey = await CryptoUtils.deriveEncryptionKey(tempMasterPassword, tempSalt);
+    
+    // 2. Chiffrer l'élément
+    const encryptedItem = await CryptoUtils.encryptVaultItem({
+      name: creds.domain || "Nouveau site",
+      username: creds.username,
+      password: creds.password,
+      url: creds.url,
+      type: 'login'
+    }, encryptionKey);
+
+    // 3. Envoyer au serveur
+    return await handleCreateVaultItem(encryptedItem);
+  } catch (error) {
+    console.error("Erreur lors de la sauvegarde auto:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function handleCreateVaultItem(item) {
+  if (!isAuthenticated) return { success: false, error: "Non authentifié" };
+  
+  try {
+    const res = await fetch(`${API_URL}/vault`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item),
+      credentials: 'include'
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Erreur lors de la sauvegarde.");
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// handleLogin sera appelé avec le mot de passe maître en clair
 
 async function handleLogin(email, masterPassword) {
   const normalizedEmail = email.toLowerCase().trim();
@@ -94,6 +188,7 @@ async function handleLogin(email, masterPassword) {
     tempSalt = salt;
     
     logToServer('info', `CONNEXION RÉUSSIE pour ${normalizedEmail}. Ouverture de l'app...`);
+    await saveSession(); // Persister l'état pour les autres onglets et le redémarrage du worker
     return { success: true };
   } catch (error) {
     logToServer('error', `Erreur globale login extension pour ${normalizedEmail}`, { error: error.message });
@@ -140,12 +235,6 @@ function openAppAndInject() {
           },
           args: [currentEmail, tempSalt, tempMasterPassword]
         });
-
-        // Nettoyage de la mémoire sensible après 2 secondes
-        setTimeout(() => {
-          tempMasterPassword = null;
-          tempSalt = null;
-        }, 2000);
       }
     });
   });

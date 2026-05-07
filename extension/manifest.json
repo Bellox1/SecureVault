@@ -23,14 +23,13 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://localhost:3001/*"],
-      "js": ["content.js"],
-      "run_at": "document_start"
+      "matches": ["<all_urls>"],
+      "js": ["crypto_utils.js", "content.js"],
+      "run_at": "document_idle"
     }
   ],
   "host_permissions": [
-    "*://localhost/*",
-    "http://localhost:3001/*",
-    "https://*.belloxdigital.com/*"
+    "<all_urls>",
+    "http://localhost:3001/*"
   ]
 }
