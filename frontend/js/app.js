@@ -7,6 +7,7 @@
 
 const App = (() => {
 
+
   // ─── State ──────────────────────────────────────────────────────────────────
   let encryptionKey = null;     // CryptoKey — never persisted, only in memory
   let vaultItems = [];          // Decrypted vault items (in memory only)
@@ -241,9 +242,42 @@ const App = (() => {
       $(id).addEventListener('change', generateAndFill);
     });
 
+    // Settings view
+    $('open-settings').addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      $('open-settings').classList.add('active');
+      openSettingsView();
+    });
+
+    $('setup-2fa-btn').onclick = handle2FASetup;
+    $('confirm-2fa-btn').onclick = handle2FAEnable;
+    $('disable-2fa-btn').onclick = handle2FADisable;
+    $('change-password-form').onsubmit = handleChangeMasterPassword;
+    $('new-master-password').oninput = (e) => {
+      const strength = Crypto.checkPasswordStrength(e.target.value);
+      const bar = $('new-password-strength-bar');
+      bar.style.width = (strength.score * 11) + '%';
+      bar.style.background = strength.color;
+    };
+
+    ['toggle-current-pass', 'toggle-new-pass'].forEach(id => {
+      const btn = $(id);
+      if (!btn) return;
+      btn.onclick = () => {
+        const inputId = id === 'toggle-current-pass' ? 'current-master-password' : 'new-master-password';
+        const inp = $(inputId);
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+        btn.innerHTML = `<i data-lucide="${inp.type === 'password' ? 'eye' : 'eye-off'}"></i>`;
+        lucide.createIcons();
+      };
+    });
+
     // Tool Generator Events
-    $('tool-gen-refresh-btn').addEventListener('click', generateForTool);
-    $('tool-gen-length').addEventListener('input', (e) => {
+    const toolGenRefreshBtn = $('tool-gen-refresh-btn');
+    if (toolGenRefreshBtn) toolGenRefreshBtn.addEventListener('click', generateForTool);
+    
+    const toolGenLength = $('tool-gen-length');
+    if (toolGenLength) toolGenLength.addEventListener('input', (e) => {
       $('tool-gen-length-val').textContent = e.target.value;
       generateForTool();
     });
@@ -891,13 +925,7 @@ const App = (() => {
       if (el) hideEl(el);
     });
     
-    hideEl($('view-details'));
-    hideEl($('view-editor'));
-    hideEl($('view-generator'));
-    hideEl($('view-admin'));
-    hideEl($('top-bar-back'));
-    $('top-bar-title').textContent = 'Mon Coffre';
-    showEl($('view-vault'), 'block');
+    switchView('view-vault');
 
     // Remettre le badge actif sur "Tous les éléments" si on sort d'un ajout
     const allTab = document.querySelector('.nav-item[data-filter="all"]');
@@ -909,11 +937,7 @@ const App = (() => {
   }
 
   async function openAdminView() {
-    hideEl($('view-vault'));
-    hideEl($('view-details'));
-    hideEl($('view-editor'));
-    hideEl($('view-generator'));
-    showEl($('view-admin'), 'block');
+    switchView('view-admin');
     
     $('top-bar-title').textContent = 'Supervision';
     showEl($('top-bar-back'), 'flex');
@@ -964,14 +988,123 @@ const App = (() => {
     }
   }
 
+  function switchView(viewId) {
+    const views = ['view-vault', 'view-details', 'view-editor', 'view-generator', 'view-admin', 'view-settings'];
+    views.forEach(v => hideEl($(v)));
+    showEl($(viewId), 'block');
+  }
+
+  async function openSettingsView() {
+    switchView('view-settings');
+    $('top-bar-title').textContent = 'Mon Compte';
+    hideEl($('top-bar-actions'));
+    
+    // Refresh 2FA status
+    try {
+      const res = await API.getMe();
+      const isEnabled = !!res.user.is_totp_enabled;
+      showEl($(isEnabled ? '2fa-status-on' : '2fa-status-off'));
+      hideEl($(isEnabled ? '2fa-status-off' : '2fa-status-on'));
+      hideEl($('2fa-setup-panel'));
+    } catch (err) {
+      showToast('Erreur lors de la récupération des infos compte.', 'error');
+    }
+  }
+
+  async function handle2FASetup() {
+    try {
+      const res = await API.setup2FA();
+      $('2fa-qr-code').src = res.qrCodeDataUrl;
+      showEl($('2fa-setup-panel'));
+      $('setup-2fa-btn').disabled = true;
+    } catch (err) {
+      showToast('Impossible de générer le QR code.', 'error');
+    }
+  }
+
+  async function handle2FAEnable() {
+    const code = $('2fa-verify-code').value;
+    if (!code || code.length !== 6) return showToast('Entrez un code valide à 6 chiffres.');
+
+    try {
+      const res = await API.enable2FA(code);
+      showToast(res.message, 'success');
+      openSettingsView();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  async function handle2FADisable() {
+    const code = prompt('Entrez votre code 2FA pour confirmer la désactivation :');
+    if (!code) return;
+
+    try {
+      const res = await API.disable2FA(code);
+      showToast(res.message, 'success');
+      openSettingsView();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  async function handleChangeMasterPassword(e) {
+    e.preventDefault();
+    const currentPass = $('current-master-password').value;
+    const newPass = $('new-master-password').value;
+
+    if (!confirm('Êtes-vous sûr de vouloir changer votre mot de passe maître ? Toutes vos données seront ré-encodées localement puis synchronisées. Cette opération peut prendre un moment.')) return;
+
+    const btn = e.target.querySelector('button');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Calculs en cours...';
+
+    try {
+      // 1. Verify current password hash (Zero-Knowledge)
+      const currentSalt = sessionStorage.getItem('sv_salt');
+      const currentAuthHash = await Crypto.deriveAuthHash(currentPass, currentSalt);
+      
+      // 2. Derive new crypto requirements
+      const newSalt = Crypto.generateSalt();
+      const newEncryptionKey = await Crypto.deriveEncryptionKey(newPass, newSalt);
+      const newAuthHash = await Crypto.deriveAuthHash(newPass, newSalt);
+
+      // 3. Re-encrypt all items currently in memory
+      showToast('Ré-encodage des données locales...', 'info');
+      const reEncryptedItems = [];
+      for (const item of vaultItems) {
+        const enc = await Crypto.encryptVaultItem(item, newEncryptionKey);
+        reEncryptedItems.push({ id: item.id, ...enc });
+      }
+
+      // 4. Submit auth change to server
+      showToast('Mise à jour du compte sur le serveur...', 'info');
+      await API.changePassword(currentAuthHash, newAuthHash, newSalt);
+      
+      // 5. Bulk update vault items with new encryption
+      showToast('Synchronisation du coffre-fort...', 'info');
+      await API.bulkUpdateVault(reEncryptedItems);
+
+      showToast('Mot de passe maître changé avec succès ! Vous allez être déconnecté.', 'success');
+      
+      // Success! Need to re-login with new password to ensure everything is correct
+      setTimeout(() => {
+        window.handleLogout();
+      }, 3000);
+
+    } catch (err) {
+      console.error('Password change failed', err);
+      showToast(`Erreur: ${err.message || 'Impossible de changer le mot de passe'}`, 'error');
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
   function openGeneratorView() {
-    hideEl($('view-vault'));
-    hideEl($('view-details'));
-    hideEl($('view-editor'));
-    hideEl($('view-admin'));
+    switchView('view-generator');
     const isMobile = window.innerWidth <= 768;
     $('top-bar-title').textContent = isMobile ? 'Générateur' : 'Générateur de mot de passe';
-    showEl($('view-generator'), 'block');
     generateForTool();
   }
 

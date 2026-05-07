@@ -106,5 +106,12 @@ const API = (() => {
     getAdminStats,
     getAdminLogs,
     clearAdminLogs: () => request('POST', '/admin/logs/clear'),
+    loginMfa: (mfaToken, code) => request('POST', '/auth/login/mfa', { mfaToken, code }),
+    setup2FA: () => request('POST', '/auth/2fa/setup'),
+    enable2FA: (code) => request('POST', '/auth/2fa/enable', { code }),
+    disable2FA: (code) => request('POST', '/auth/2fa/disable', { code }),
+    changePassword: (currentPasswordHash, newPasswordHash, newSalt) => 
+      request('POST', '/auth/change-password', { currentPasswordHash, newPasswordHash, newSalt }),
+    bulkUpdateVault: (items) => request('POST', '/vault/bulk-update', { items }),
   };
 })();

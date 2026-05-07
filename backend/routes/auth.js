@@ -7,9 +7,15 @@ const { v4: uuidv4 } = require('uuid');
 const { body, validationResult } = require('express-validator');
 const db = require('../database');
 const logger = require('../logger');
+const { sendInviteEmail } = require('../mailer');
 const { JWT_SECRET } = require('../middleware/auth');
 const { authLimiter, registerLimiter } = require('../middleware/rateLimiter');
 const { authenticate } = require('../middleware/auth');
+const { authenticator } = require('otplib');
+const QRCode = require('qrcode');
+
+// Configuration otplib
+authenticator.options = { window: 1 }; // Tolérance de 30s avant/après
 
 // Anti-cache middleware for auth routes
 router.use((req, res, next) => {
@@ -75,13 +81,14 @@ router.post('/register-invite',
       db.prepare('INSERT OR REPLACE INTO pending_registrations (token, email, expires_at) VALUES (?, ?, ?)')
         .run(token, normalizedEmail, expiresAt);
 
-      // Simulation d'envoi d'email
+      // Envoi réel de l'email
       const inviteUrl = `${req.headers.origin}/register.html?regToken=${token}&email=${encodeURIComponent(normalizedEmail)}`;
-      logger.info('Verification link generated', { inviteUrl });
+      const emailSent = await sendInviteEmail(normalizedEmail, inviteUrl);
 
-      // En mode local, on renvoie l'URL pour faciliter le test
       res.json({
-        message: 'Lien de vérification généré (voir console serveur).',
+        message: emailSent 
+          ? 'Si cet email est valide, vous recevrez un lien sous peu.' 
+          : 'Génération du lien réussie, mais erreur lors de l\'envoi de l\'email. Contactez le support.',
         devLink: process.env.NODE_ENV === 'development' ? inviteUrl : null
       });
     } catch (err) {
@@ -201,6 +208,24 @@ router.post('/login',
         return res.status(401).json(GENERIC_ERROR);
       }
 
+      // Check if TOTP is enabled
+      if (user.is_totp_enabled) {
+        // Return required MFA but DON'T log in yet
+        // Store partial success in a temporary short-lived token or session
+        const mfaToken = jwt.sign(
+          { sub: user.id, type: 'mfa_pending' },
+          JWT_SECRET,
+          { expiresIn: '5m' }
+        );
+        
+        return res.json({
+          mfaRequired: true,
+          mfaToken: mfaToken,
+          salt: user.salt,
+          kdfIterations: user.kdf_iterations
+        });
+      }
+
       // Reset failed logins on success
       db.prepare('UPDATE users SET failed_logins = 0, locked_until = NULL, last_login = ? WHERE id = ?')
         .run(Date.now(), user.id);
@@ -223,7 +248,7 @@ router.post('/login',
       res.json({
         message: 'Connexion réussie.',
         user: { id: user.id, email: user.email },
-        salt: user.salt, // client re-derives encryption key from this
+        salt: user.salt,
         kdfIterations: user.kdf_iterations,
       });
     } catch (err) {
@@ -307,5 +332,119 @@ router.post('/salt',
     res.json({ salt: user.salt, kdfIterations: user.kdf_iterations });
   }
 );
+
+// ─── POST /api/auth/login/mfa ────────────────────────────────────────────────
+router.post('/login/mfa', authLimiter, async (req, res) => {
+  const { mfaToken, code } = req.body;
+  if (!mfaToken || !code) return res.status(400).json({ error: 'Token ou code manquant.' });
+
+  try {
+    const payload = jwt.verify(mfaToken, JWT_SECRET);
+    if (payload.type !== 'mfa_pending') throw new Error('Token invalide');
+
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.sub);
+    if (!user || !user.is_totp_enabled || !user.totp_secret) {
+      return res.status(400).json({ error: 'MFA non configuré.' });
+    }
+
+    const isValid = authenticator.check(code, user.totp_secret);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Code incorrect.' });
+    }
+
+    // Success! Generate real session
+    const token = generateToken(user.id, user.email);
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const sessionId = uuidv4();
+    const now = Date.now();
+
+    db.prepare(`
+      INSERT INTO sessions (id, user_id, token_hash, ip_address, user_agent, created_at, expires_at, last_used)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(sessionId, user.id, tokenHash, req.ip, req.headers['user-agent'] || '', now, now + 1000 * 60 * 60 * 2, now);
+
+    setCookies(res, token);
+    logger.info('MFA login successful', { userId: user.id });
+
+    res.json({
+      message: 'Connexion réussie.',
+      user: { id: user.id, email: user.email },
+      salt: user.salt,
+      kdfIterations: user.kdf_iterations
+    });
+  } catch (err) {
+    res.status(401).json({ error: 'Session expirée ou invalide.' });
+  }
+});
+
+// ─── POST /api/auth/2fa/setup ────────────────────────────────────────────────
+router.post('/2fa/setup', authenticate, async (req, res) => {
+  const user = db.prepare('SELECT email, totp_secret FROM users WHERE id = ?').get(req.user.id);
+  
+  // Create secret if doesn't exist
+  let secret = user.totp_secret;
+  if (!secret) {
+    secret = authenticator.generateSecret();
+    db.prepare('UPDATE users SET totp_secret = ? WHERE id = ?').run(secret, req.user.id);
+  }
+
+  const otpauth = authenticator.keyuri(user.email, 'SecureVault', secret);
+  const qrCodeDataUrl = await QRCode.toDataURL(otpauth);
+
+  res.json({ secret, qrCodeDataUrl });
+});
+
+// ─── POST /api/auth/2fa/enable ───────────────────────────────────────────────
+router.post('/2fa/enable', authenticate, async (req, res) => {
+  const { code } = req.body;
+  const user = db.prepare('SELECT totp_secret FROM users WHERE id = ?').get(req.user.id);
+
+  if (!user.totp_secret) return res.status(400).json({ error: 'Initialisez le 2FA d\'abord.' });
+
+  const isValid = authenticator.check(code, user.totp_secret);
+  if (!isValid) return res.status(400).json({ error: 'Code incorrect.' });
+
+  db.prepare('UPDATE users SET is_totp_enabled = 1 WHERE id = ?').run(req.user.id);
+  logger.info('2FA enabled', { userId: req.user.id });
+  res.json({ message: 'Double authentification activée.' });
+});
+
+// ─── POST /api/auth/2fa/disable ──────────────────────────────────────────────
+router.post('/2fa/disable', authenticate, async (req, res) => {
+  const { code } = req.body;
+  const user = db.prepare('SELECT totp_secret FROM users WHERE id = ?').get(req.user.id);
+
+  const isValid = authenticator.check(code, user.totp_secret);
+  if (!isValid) return res.status(400).json({ error: 'Code incorrect.' });
+
+  db.prepare('UPDATE users SET is_totp_enabled = 0, totp_secret = NULL WHERE id = ?').run(req.user.id);
+  logger.info('2FA disabled', { userId: req.user.id });
+  res.json({ message: 'Double authentification désactivée.' });
+});
+
+// ─── POST /api/auth/change-password ──────────────────────────────────────────
+router.post('/change-password', authenticate, async (req, res) => {
+  const { currentPasswordHash, newPasswordHash, newSalt } = req.body;
+  
+  if (!currentPasswordHash || !newPasswordHash || !newSalt) {
+    return res.status(400).json({ error: 'Champs manquants.' });
+  }
+
+  try {
+    const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
+    const isValid = await argon2.verify(user.password_hash, currentPasswordHash);
+    
+    if (!isValid) return res.status(401).json({ error: 'Mot de passe actuel incorrect.' });
+
+    const newHash = await argon2.hash(newPasswordHash);
+    db.prepare('UPDATE users SET password_hash = ?, salt = ? WHERE id = ?')
+      .run(newHash, newSalt, req.user.id);
+
+    logger.info('Master password changed', { userId: req.user.id });
+    res.json({ message: 'Mot de passe maître mis à jour.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur lors du changement de mot de passe.' });
+  }
+});
 
 module.exports = router;

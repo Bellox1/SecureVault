@@ -165,4 +165,41 @@ router.post('/folders/create',
   }
 );
 
+// ─── POST /api/vault/bulk-update ──────────────────────────────────────────────
+// Used primarily for Zero-Knowledge re-encryption (master password change)
+router.post('/bulk-update',
+  [body('items').isArray().withMessage('La liste des éléments est requise.')],
+  (req, res) => {
+    if (!validate(req, res)) return;
+    const { items } = req.body;
+    
+    try {
+      // Use a manual transaction if possible, or execute individually
+      // (DbWrapper currently doesn't support explicit transactions easily, 
+      // so we'll do best-effort grouped execution)
+      
+      const updateStmt = db.prepare(`
+        UPDATE vault_items
+        SET type = ?, name_enc = ?, data_enc = ?, iv = ?, auth_tag = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+      `);
+
+      let updatedCount = 0;
+      for (const item of items) {
+        const result = updateStmt.run(
+          item.type, item.name_enc, item.data_enc, item.iv, item.auth_tag,
+          Date.now(), item.id, req.user.id
+        );
+        updatedCount += result.changes;
+      }
+
+      logger.info('Bulk vault update successful', { userId: req.user.id, count: updatedCount });
+      res.json({ message: 'Mise à jour du coffre réussie.', updatedCount });
+    } catch (err) {
+      logger.error('Bulk update error', { userId: req.user.id, error: err.message });
+      res.status(500).json({ error: 'Erreur lors de la mise à jour massive.' });
+    }
+  }
+);
+
 module.exports = router;

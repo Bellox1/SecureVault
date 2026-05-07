@@ -78,6 +78,11 @@
 
       <p class="nav-section-label">Outils</p>
 
+      <div class="nav-item" id="open-settings" role="button" tabindex="0">
+        <span class="nav-icon"><i data-lucide="settings"></i></span>
+        <span>Mon Compte</span>
+      </div>
+
       <div class="nav-item" id="open-generator" role="button" tabindex="0">
         <span class="nav-icon"><i data-lucide="dices"></i></span>
         <span>Générateur</span>
@@ -454,6 +459,75 @@
               <div style="opacity: 0.5">Chargement...</div>
             </div>
           </div>
+      </div>
+    </div>
+    <!-- VIEW: SETTINGS -->
+    <div class="content-area" id="view-settings" style="display:none; padding: 2rem;">
+      <div class="view-container">
+        <h2 class="section-title">Paramètres du compte</h2>
+        
+        <div class="grid-2">
+          <!-- Change Password Section -->
+          <div class="stat-card" style="text-align: left; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem; display:flex; align-items:center; gap: 0.5rem;"><i data-lucide="lock" style="width:20px; color: var(--bw-primary)"></i> Sécurité du maître</h3>
+            <p style="font-size: 0.875rem; color: var(--bw-text-secondary); margin-bottom: 2rem;">Le changement du mot de passe maître entraînera le ré-encodage local de toutes vos données avant synchronisation.</p>
+            
+            <form id="change-password-form">
+              <div class="form-group" style="margin-bottom: 1.5rem">
+                <label style="display:block; margin-bottom: 0.5rem; font-weight:600">Mot de passe actuel</label>
+                <div class="input-with-icon">
+                  <span class="input-icon"><i data-lucide="lock" style="width:14px"></i></span>
+                  <input type="password" id="current-master-password" class="form-control" required placeholder="••••••••">
+                  <button type="button" class="input-toggle-btn" id="toggle-current-pass" aria-label="Afficher"><i data-lucide="eye"></i></button>
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 1.5rem">
+                <label style="display:block; margin-bottom: 0.5rem; font-weight:600">Nouveau mot de passe</label>
+                <div class="input-with-icon">
+                  <span class="input-icon"><i data-lucide="key-round" style="width:14px"></i></span>
+                  <input type="password" id="new-master-password" class="form-control" required placeholder="••••••••">
+                  <button type="button" class="input-toggle-btn" id="toggle-new-pass" aria-label="Afficher"><i data-lucide="eye"></i></button>
+                </div>
+                <div id="new-password-strength" style="height: 4px; border-radius: 2px; background: #eee; margin-top: 8px; overflow: hidden;">
+                  <div id="new-password-strength-bar" style="height: 100%; width: 0; transition: all 0.3s;"></div>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%">Mettre à jour le mot de passe</button>
+            </form>
+          </div>
+
+          <!-- 2FA Section -->
+          <div class="stat-card" style="text-align: left; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem; display:flex; align-items:center; gap: 0.5rem;"><i data-lucide="shield-check" style="width:20px; color: var(--bw-primary)"></i> Double Authentification (2FA)</h3>
+            <p style="font-size: 0.875rem; color: var(--bw-text-secondary); margin-bottom: 1rem;">Ajoutez une couche de sécurité supplémentaire à votre compte en utilisant une application d'authentification (Google Authenticator, Bitwarden, etc.).</p>
+            
+            <div id="2fa-status-off">
+              <div style="background: var(--bw-bg-secondary); color: var(--bw-text-primary); padding: 1rem; border-radius: 8px; margin-bottom: 2rem; font-size: 0.875rem; border: 1px solid var(--bw-border)">
+                La double authentification est actuellement <strong>désactivée</strong>.
+              </div>
+              <button class="btn btn-outline" id="setup-2fa-btn" style="width: 100%">Configurer la 2FA</button>
+            </div>
+
+            <div id="2fa-status-on" style="display: none">
+              <div style="background: rgba(34, 197, 94, 0.1); color: #166534; padding: 1rem; border-radius: 8px; margin-bottom: 2rem; font-size: 0.875rem; border: 1px solid rgba(34, 197, 94, 0.2)">
+                La double authentification est <strong>activée</strong>.
+              </div>
+              <button class="btn btn-outline" id="disable-2fa-btn" style="width: 100%; color: #ef4444; border-color: #fecaca">Désactiver la 2FA</button>
+            </div>
+
+            <!-- Setup Steps (Hidden initially) -->
+            <div id="2fa-setup-panel" style="display: none; margin-top: 2rem; border-top: 1px solid var(--bw-border); padding-top: 2rem;">
+              <p style="font-size: 0.8125rem; font-weight: 700; margin-bottom: 1rem;">1. Scannez ce QR Code :</p>
+              <div style="text-align: center; margin-bottom: 1.5rem; background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--bw-border)">
+                <img id="2fa-qr-code" style="max-width: 200px; height: auto;">
+              </div>
+              <p style="font-size: 0.8125rem; font-weight: 700; margin-bottom: 1rem;">2. Entrez le code généré :</p>
+              <div style="display: flex; gap: 0.5rem">
+                <input type="text" id="2fa-verify-code" class="form-control" placeholder="000000" maxlength="6" style="text-align: center; letter-spacing: 2px; font-size: 1.25rem;">
+                <button class="btn btn-primary" id="confirm-2fa-btn">Vérifier</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -489,11 +563,11 @@
 </div>
 
 <!-- ─── Toast Container ─────────────────────────────────────────────────────── -->
-<div id="toast-container" aria-live="polite"></div>
+<div id="toast-container" class="toast-container"></div>
 
 <script src="/js/crypto.js"></script>
-  <script src="/js/api.js?v=1.1"></script>
-  <script src="/js/app.js?v=1.1"></script>
+  <script src="/js/api.js?v=2"></script>
+  <script src="/js/app.js?v=2"></script>
   <script>
     // Message de secours si handleLogout ne répond pas
     window.addEventListener('error', function(e) {

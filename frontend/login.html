@@ -28,13 +28,22 @@
     Identifiants incorrects.
   </div>
 
+  <!-- MFA Group (Hidden) -->
+  <div id="mfa-group" style="display:none; text-align: center; margin-top: 1rem;">
+    <p style="font-size: 0.875rem; margin-bottom: 1.5rem; color: var(--bw-text-secondary);">La double authentification est activée. Entrez le code de votre application.</p>
+    <div class="form-group" style="max-width: 200px; margin: 0 auto">
+      <input type="text" id="mfa-code" class="form-control" placeholder="000000" maxlength="6" style="text-align: center; letter-spacing: 0.5rem; font-size: 1.5rem">
+    </div>
+    <button type="button" id="mfa-submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem">Vérifier le code</button>
+  </div>
+
   <form id="login-form">
     <div id="email-group" class="form-group" style="text-align: left">
       <label class="form-label">Email</label>
       <input type="email" id="email" class="form-control" placeholder="nom@exemple.com" required>
     </div>
     
-    <div class="form-group" style="text-align: left;">
+    <div id="password-group" class="form-group" style="text-align: left;">
       <label class="form-label">Mot de passe maître</label>
       <div class="password-wrapper">
         <input type="password" id="password" class="form-control" placeholder="••••••••" required>
@@ -44,10 +53,10 @@
       </div>
     </div>
 
-    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem">Se connecter</button>
+    <button type="submit" id="login-submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem">Se connecter</button>
   </form>
 
-  <div class="auth-footer">
+  <div class="auth-footer" id="auth-footer">
     <p>Nouveau membre ? <a href="/register.html">Créer un compte</a></p>
     <a href="/" style="display: inline-block; margin-top: 1.5rem; color: var(--bw-text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em">← Retour à l'accueil</a>
   </div>
@@ -55,10 +64,14 @@
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="/js/crypto.js"></script>
-<script src="/js/api.js"></script>
+<script src="/js/api.js?v=2"></script>
 <script>
 lucide.createIcons();
 const $ = id => document.getElementById(id);
+
+let pendingMfaToken = null;
+let currentMp = null;
+let currentSalt = null;
 
 // Remember Email Logic
 const savedEmail = localStorage.getItem('sv_remembered_email');
@@ -96,26 +109,65 @@ $('login-form').onsubmit = async (e) => {
   e.preventDefault();
   const email = $('email').value;
   const password = $('password').value;
-  const btn = e.target.querySelector('button');
+  const btn = $('login-submit');
   const originalText = btn.textContent;
+  
+  $('auth-error').style.display = 'none';
   btn.disabled = true;
-  btn.textContent = 'Déchiffrement...';
+  btn.textContent = 'Vérification...';
 
   try {
     const { salt } = await API.getSalt(email);
     const passwordHash = await Crypto.deriveAuthHash(password, salt);
-    await API.login(email, passwordHash);
-    localStorage.setItem('sv_remembered_email', email);
-    sessionStorage.setItem('sv_email', email);
-    sessionStorage.setItem('sv_salt', salt);
-    sessionStorage.setItem('sv_tmp_mp', password);
-    window.location.href = '/app.html';
+    const res = await API.login(email, passwordHash);
+    
+    currentMp = password;
+    currentSalt = salt;
+
+    if (res.mfaRequired) {
+      pendingMfaToken = res.mfaToken;
+      $('login-form').style.display = 'none';
+      $('auth-subtitle').style.display = 'none';
+      $('mfa-group').style.display = 'block';
+      $('auth-title').textContent = 'Double vérification';
+      $('mfa-code').focus();
+    } else {
+      finalizeLogin(email, salt, password);
+    }
   } catch (err) {
     $('auth-error').style.display = 'block';
+    $('auth-error').textContent = err.message || 'Identifiants incorrects.';
     btn.disabled = false;
     btn.textContent = originalText;
   }
 };
+
+$('mfa-submit').onclick = async () => {
+  const code = $('mfa-code').value;
+  if (!code || code.length !== 6) return;
+
+  const btn = $('mfa-submit');
+  btn.disabled = true;
+  btn.textContent = 'Vérification...';
+
+  try {
+    await API.loginMfa(pendingMfaToken, code);
+    finalizeLogin($('email').value, currentSalt, currentMp);
+  } catch (err) {
+    $('auth-error').style.display = 'block';
+    $('auth-error').textContent = err.message || 'Code incorrect.';
+    btn.disabled = false;
+    btn.textContent = 'Vérifier le code';
+  }
+};
+
+function finalizeLogin(email, salt, password) {
+  localStorage.setItem('sv_remembered_email', email);
+  sessionStorage.setItem('sv_email', email);
+  sessionStorage.setItem('sv_salt', salt);
+  sessionStorage.setItem('sv_tmp_mp', password);
+  window.location.href = '/app.html';
+}
 </script>
 </body>
 </html>
