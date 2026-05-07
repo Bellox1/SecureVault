@@ -192,7 +192,7 @@ router.post('/login',
           const lockedUntil = newFailedCount >= LOCK_THRESHOLD ? Date.now() + LOCK_DURATION_MS : null;
           db.prepare('UPDATE users SET failed_logins = ?, locked_until = ? WHERE id = ?')
             .run(newFailedCount, lockedUntil, user.id);
-          
+
           if (lockedUntil) {
             logger.warn('Account locked due to too many failed attempts', { userId: user.id, ip: req.ip });
           }
@@ -248,7 +248,7 @@ router.post('/logout', (req, res) => {
         const result = db.prepare('DELETE FROM sessions WHERE user_id = ?').run(decoded.sub);
         deletedCount += (result.changes || 0);
       }
-      
+
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
       const result2 = db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(tokenHash);
       deletedCount += (result2.changes || 0);
@@ -276,7 +276,7 @@ router.get('/purge-sessions-now', (req, res) => {
 
 // ─── GET /api/auth/me ─────────────────────────────────────────────────────────
 router.get('/me', authenticate, (req, res) => {
-  const user = db.prepare('SELECT id, email, created_at, last_login FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, email, created_at, last_login, is_admin FROM users WHERE id = ?').get(req.user.id);
   if (!user) {
     logger.warn('Me check: User not found in DB but session exists', { userId: req.user.id });
     return res.status(404).json({ error: 'Utilisateur introuvable.' });

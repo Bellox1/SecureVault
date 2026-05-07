@@ -50,3 +50,12 @@ module.exports.authenticate = (req, res, next) => {
     return res.status(401).json({ error: 'Token invalide.' });
   }
 };
+
+module.exports.isAdmin = (req, res, next) => {
+  const user = db.prepare('SELECT is_admin FROM users WHERE id = ?').get(req.user.id);
+  if (!user || !user.is_admin) {
+    logger.warn('Unauthorized admin access attempt', { userId: req.user.id, ip: req.ip });
+    return res.status(403).json({ error: 'Accès réservé aux administrateurs.' });
+  }
+  next();
+};

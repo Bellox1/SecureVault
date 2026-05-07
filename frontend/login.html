@@ -26,9 +26,14 @@
       <input type="email" id="email" class="form-control" placeholder="nom@exemple.com" required>
     </div>
     
-    <div class="form-group" style="text-align: left">
+    <div class="form-group" style="text-align: left;">
       <label class="form-label">Mot de passe maître</label>
-      <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+      <div class="password-wrapper">
+        <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+        <button type="button" id="toggle-password" class="password-toggle">
+          <i data-lucide="eye"></i>
+        </button>
+      </div>
     </div>
 
     <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem">Se connecter</button>
@@ -46,6 +51,16 @@
 <script>
 lucide.createIcons();
 const $ = id => document.getElementById(id);
+const toggleBtn = $('toggle-password');
+const passwordInput = $('password');
+
+toggleBtn.onclick = () => {
+  const isPassword = passwordInput.type === 'password';
+  passwordInput.type = isPassword ? 'text' : 'password';
+  toggleBtn.innerHTML = `<i data-lucide="${isPassword ? 'eye-off' : 'eye'}"></i>`;
+  lucide.createIcons();
+};
+
 $('login-form').onsubmit = async (e) => {
   e.preventDefault();
   const email = $('email').value;

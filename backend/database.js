@@ -57,6 +57,7 @@ async function getDb() {
       is_totp_enabled INTEGER NOT NULL DEFAULT 0,
       failed_logins INTEGER NOT NULL DEFAULT 0,
       locked_until INTEGER,
+      is_admin    INTEGER NOT NULL DEFAULT 0,
       created_at  INTEGER NOT NULL,
       last_login  INTEGER
     );
@@ -105,6 +106,15 @@ async function getDb() {
     -- FORCE PURGE ALL SESSIONS ON RESTART (Temporary for debugging)
     DELETE FROM sessions;
   `);
+
+  // Ensure is_admin exists (ALTER TABLE if missing)
+  try {
+    db.run('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+  } catch (e) {
+    // Column already exists or other error
+  }
+
+
 
   scheduleSave();
   return db;

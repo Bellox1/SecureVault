@@ -77,6 +77,16 @@ const API = (() => {
     return request('POST', '/vault/folders/create', { name_enc });
   }
 
+  // ─── Admin ────────────────────────────────────────────────────────────────
+  
+  async function getAdminStats() {
+    return request('GET', '/admin/stats');
+  }
+
+  async function getAdminLogs(type = 'combined') {
+    return request('GET', `/admin/logs?type=${type}`);
+  }
+
   return {
     get: (path) => request('GET', path),
     post: (path, body) => request('POST', path, body),
@@ -93,5 +103,8 @@ const API = (() => {
     deleteItem,
     getFolders,
     createFolder,
+    getAdminStats,
+    getAdminLogs,
+    clearAdminLogs: () => request('POST', '/admin/logs/clear'),
   };
 })();

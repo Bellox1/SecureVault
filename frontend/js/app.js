@@ -22,6 +22,13 @@ const App = (() => {
   const hideEl = el => { if (el) el.style.display = 'none'; };
   const showEl = (el, display = 'block') => { if (el) el.style.display = display; };
 
+  function escapeHTML(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[m]);
+  }
+
   function showToast(msg, type = 'info') {
     const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
     const t = document.createElement('div');
@@ -36,14 +43,6 @@ const App = (() => {
     }, 4000);
   }
 
-  // ─── Auto-lock ──────────────────────────────────────────────────────────────
-  function resetAutoLock() {
-    clearTimeout(autoLockTimer);
-    autoLockTimer = setTimeout(() => {
-      lock('Session expirée après inactivité.');
-    }, AUTO_LOCK_MINUTES * 60 * 1000);
-  }
-
   function lock(reason = 'Coffre verrouillé.') {
     encryptionKey = null;
     vaultItems = [];
@@ -52,16 +51,17 @@ const App = (() => {
     setTimeout(() => { window.location.href = '/'; }, 1500);
   }
 
-  ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evt =>
-    document.addEventListener(evt, resetAutoLock, { passive: true })
-  );
-
   // ─── Initialization ──────────────────────────────────────────────────────────
   async function init() {
     // 1. Verify session
     try {
       const res = await API.getMe();
       currentUser = res.user;
+
+      // Admin check
+      if (currentUser.is_admin) {
+        showEl($('admin-nav-section'), 'block');
+      }
     } catch {
       window.location.href = '/';
       return;
@@ -90,7 +90,6 @@ const App = (() => {
 
     // 3. Setup UI
     setupUI();
-    resetAutoLock();
 
     // 4. Load vault
     await loadVault();
@@ -173,6 +172,44 @@ const App = (() => {
 
     // Lock vault (now calls full logout for simplicity)
     $('lock-btn')?.addEventListener('click', window.handleLogout);
+
+    $('nav-admin').onclick = () => {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      $('nav-admin').classList.add('active');
+      openAdminView();
+    };
+    
+    $('refresh-logs-btn').onclick = () => loadAdminLogs('combined', 'admin-logs-viewer');
+    $('refresh-error-logs-btn').onclick = () => loadAdminLogs('error', 'admin-error-logs-viewer');
+
+    $('tab-log-activity').onclick = () => {
+      $('tab-log-activity').classList.add('active');
+      $('tab-log-error').classList.remove('active');
+      showEl($('pane-log-activity'), 'block');
+      hideEl($('pane-log-error'));
+      loadAdminLogs('combined', 'admin-logs-viewer');
+    };
+
+    $('tab-log-error').onclick = () => {
+      $('tab-log-error').classList.add('active');
+      $('tab-log-activity').classList.remove('active');
+      showEl($('pane-log-error'), 'block');
+      hideEl($('pane-log-activity'));
+      loadAdminLogs('error', 'admin-error-logs-viewer');
+    };
+
+    $('clear-logs-btn').onclick = async () => {
+      if (!confirm('Êtes-vous sûr de vouloir vider tous les fichiers de logs ? Cette action est irréversible.')) return;
+      
+      try {
+        await API.clearAdminLogs();
+        showToast('Logs vidés.');
+        loadAdminLogs('combined', 'admin-logs-viewer');
+        loadAdminLogs('error', 'admin-error-logs-viewer');
+      } catch (err) {
+        showToast(`Erreur: ${err.message || 'Impossible de vider les logs'}`, 'error');
+      }
+    };
 
     // Modal close buttons
     document.querySelectorAll('.modal-cancel, .modal-close').forEach(btn => {
@@ -381,11 +418,12 @@ const App = (() => {
 
     if (filtered.length === 0) {
       hideEl(tableContainer);
+      const safeSearch = escapeHTML(currentSearch);
       emptyContainer.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon"><i data-lucide="shield-off" style="width:64px;height:64px"></i></div>
           <h3>${currentSearch ? 'Aucun résultat' : 'Coffre vide'}</h3>
-          <p>${currentSearch ? `Aucun élément ne correspond à "${currentSearch}"` : 'Ajoutez votre premier élément sécurisé.'}</p>
+          <p>${currentSearch ? `Aucun élément ne correspond à "${safeSearch}"` : 'Ajoutez votre premier élément sécurisé.'}</p>
           ${!currentSearch ? `<button class="btn btn-primary" id="empty-add-btn" style="margin-top:1.5rem"><i data-lucide="plus" style="width:18px;margin-right:8px"></i> Ajouter un élément</button>` : ''}
         </div>
       `;
@@ -724,6 +762,7 @@ const App = (() => {
     
     hideEl($('view-vault'));
     hideEl($('view-details'));
+    hideEl($('view-admin'));
     showEl($('top-bar-back'), 'flex');
 
     $('top-bar-title').textContent = item ? 'Modifier l\'élément' : 'Nouvel élément';
@@ -807,6 +846,7 @@ const App = (() => {
     hideEl($('view-details'));
     hideEl($('view-editor'));
     hideEl($('view-generator'));
+    hideEl($('view-admin'));
     hideEl($('top-bar-back'));
     $('top-bar-title').textContent = 'Mon Coffre';
     showEl($('view-vault'), 'block');
@@ -820,10 +860,67 @@ const App = (() => {
     editingItemId = null;
   }
 
+  async function openAdminView() {
+    hideEl($('view-vault'));
+    hideEl($('view-details'));
+    hideEl($('view-editor'));
+    hideEl($('view-generator'));
+    showEl($('view-admin'), 'block');
+    
+    $('top-bar-title').textContent = 'Supervision';
+    showEl($('top-bar-back'), 'flex');
+
+    await Promise.all([
+      loadAdminStats(),
+      loadAdminLogs('combined', 'admin-logs-viewer'),
+      loadAdminLogs('error', 'admin-error-logs-viewer')
+    ]);
+  }
+
+  async function loadAdminStats() {
+    try {
+      const stats = await API.getAdminStats();
+      $('admin-stat-users').textContent = stats.users;
+      $('admin-stat-items').textContent = stats.items;
+      $('admin-stat-sessions').textContent = stats.sessions;
+    } catch (err) {
+      showToast('Erreur stats admin.', 'error');
+    }
+  }
+
+  async function loadAdminLogs(type, viewerId) {
+    const viewer = $(viewerId);
+    viewer.innerHTML = '<div style="opacity: 0.5">Chargement...</div>';
+    
+    try {
+      const { logs } = await API.getAdminLogs(type);
+      if (!logs || logs.length === 0) {
+        viewer.innerHTML = '<div style="opacity:0.5; font-style:italic">Aucun log disponible.</div>';
+        return;
+      }
+
+      viewer.innerHTML = logs.map(log => {
+        const time = new Date(log.timestamp).toLocaleTimeString();
+        const meta = log.userId ? ` <span style="color:#569cd6">[U:${log.userId.substring(0,6)}]</span>` : '';
+        const safeMsg = escapeHTML(log.message);
+        
+        return `<div class="log-line" style="margin-bottom: 2px; line-height: 1.2;">
+          <span style="color: #858585;">[${time}]</span> 
+          <span style="font-weight:700; color:${log.level === 'error' ? '#f44747' : (log.level === 'warn' ? '#dcdcaa' : '#4ec9b0')}">${(log.level || 'INFO').toUpperCase()}</span>: 
+          <span>${safeMsg}</span>${meta}
+        </div>`;
+      }).join('');
+      
+    } catch (err) {
+      viewer.innerHTML = `<div style="color:#f44747">Erreur: ${err.message}</div>`;
+    }
+  }
+
   function openGeneratorView() {
     hideEl($('view-vault'));
     hideEl($('view-details'));
     hideEl($('view-editor'));
+    hideEl($('view-admin'));
     $('top-bar-title').textContent = 'Générateur de mot de passe';
     showEl($('view-generator'), 'block');
     generateForTool();

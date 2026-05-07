@@ -82,6 +82,14 @@
         <span class="nav-icon"><i data-lucide="lock"></i></span>
         <span>Verrouiller</span>
       </div>
+
+      <div id="admin-nav-section" style="display:none">
+        <p class="nav-section-label">Maintenance</p>
+        <div class="nav-item" id="nav-admin" role="button" tabindex="0">
+          <span class="nav-icon"><i data-lucide="shield-check"></i></span>
+          <span>Supervision</span>
+        </div>
+      </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -366,6 +374,68 @@
           <button type="button" class="btn btn-primary" id="tool-gen-copy-btn">
             <span class="btn-text" style="display:flex;align-items:center;gap:0.5rem;justify-content:center;"><i data-lucide="copy" style="width:18px"></i> Copier</span>
           </button>
+        </div>
+      </div>
+    </div>
+    <!-- VIEW: ADMIN SUPERVISION -->
+    <div class="content-area" id="view-admin" style="display:none; padding: 2rem;">
+      <div class="view-container">
+        <h2 style="font-size: 1.5rem; margin-bottom: 2rem">Tableau de bord Supervision</h2>
+        
+        <div class="stats-grid" id="admin-stats-container">
+          <div class="stat-card">
+            <div class="stat-value" id="admin-stat-users">—</div>
+            <div class="stat-label">Utilisateurs inscrits</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="admin-stat-items">—</div>
+            <div class="stat-label">Éléments chiffrés</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="admin-stat-sessions">—</div>
+            <div class="stat-label">Sessions actives</div>
+          </div>
+        </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--bw-border); padding-bottom: 1rem;">
+            <!-- Custom Tab Switcher for Logs -->
+            <div class="type-tabs" style="background: var(--bw-bg-secondary); border-radius: 8px; padding: 4px; display: inline-flex; gap: 4px; margin-bottom: 0;">
+              <button type="button" class="type-tab active" id="tab-log-activity" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; min-width: 120px; justify-content: center;">
+                <i data-lucide="activity" style="width:14px"></i>
+                <span>Activité</span>
+              </button>
+              <button type="button" class="type-tab" id="tab-log-error" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; min-width: 120px; justify-content: center;">
+                <i data-lucide="alert-circle" style="width:14px; color: #f44747;"></i>
+                <span>Erreurs</span>
+              </button>
+            </div>
+
+            <button class="btn btn-outline btn-sm" id="clear-logs-btn" style="color: #f44747; border-color: rgba(244, 71, 71, 0.3);">
+              <i data-lucide="trash-2" style="width:14px; margin-right: 6px;"></i> Vider les logs
+            </button>
+          </div>
+
+          <!-- Activity Log Viewer -->
+          <div id="pane-log-activity">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem">
+              <h3 style="font-size: 1.1rem">Flux d'activité globale</h3>
+              <button class="btn btn-outline btn-sm" id="refresh-logs-btn"><i data-lucide="refresh-cw" style="width:14px"></i> Actualiser</button>
+            </div>
+            <div id="admin-logs-viewer" style="background: #1e1e1e; color: #d4d4d4; padding: 1.5rem; border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 0.8125rem; height: 500px; overflow-y: auto; border: 1px solid #333;">
+              <div style="opacity: 0.5">Chargement...</div>
+            </div>
+          </div>
+
+          <!-- Error Log Viewer -->
+          <div id="pane-log-error" style="display:none">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem">
+              <h3 style="font-size: 1.1rem; color: #f44747;">Flux d'erreurs critiques</h3>
+              <button class="btn btn-outline btn-sm" id="refresh-error-logs-btn"><i data-lucide="refresh-cw" style="width:14px"></i> Actualiser</button>
+            </div>
+            <div id="admin-error-logs-viewer" style="background: #1e1e1e; color: #f44747; padding: 1.5rem; border-radius: 8px; font-family: 'Fira Code', monospace; font-size: 0.8125rem; height: 500px; overflow-y: auto; border: 1px solid #333;">
+              <div style="opacity: 0.5">Chargement...</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

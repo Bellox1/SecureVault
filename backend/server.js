@@ -10,6 +10,7 @@ const logger = require('./logger');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const authRoutes = require('./routes/auth');
 const vaultRoutes = require('./routes/vault');
+const adminRoutes = require('./routes/admin');
 const db = require('./database'); // initialize DB on startup
 
 const app = express();
@@ -81,6 +82,7 @@ app.use(express.static(frontendPath, {
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/vault', vaultRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
