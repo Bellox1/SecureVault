@@ -25,12 +25,17 @@
 
   <!-- ─── Sidebar ─────────────────────────────────────────────────────────── -->
   <aside class="sidebar" role="navigation" aria-label="Navigation principale">
-    <a href="/index.html" class="sidebar-header" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem;">
-      <div class="sidebar-logo"><i data-lucide="shield-check"></i></div>
-      <div class="sidebar-brand">
-        <span>SecureVault</span>
-      </div>
-    </a>
+    <div class="sidebar-header-wrapper" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--bw-border);">
+      <a href="/index.html" class="sidebar-header" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.75rem; border-bottom: none; flex: 1;">
+        <div class="sidebar-logo"><i data-lucide="shield-check"></i></div>
+        <div class="sidebar-brand">
+          <span>SecureVault</span>
+        </div>
+      </a>
+      <button class="btn btn-ghost btn-sm mobile-close-btn" id="mobile-close-sidebar" style="display: none; padding: 0.5rem; margin-right: 0.5rem;" title="Fermer le menu">
+        <i data-lucide="x" style="width:24px; height:24px"></i>
+      </button>
+    </div>
 
     <div class="sidebar-search">
       <input type="search" id="search-input" class="sidebar-search-input"
@@ -78,20 +83,7 @@
         <span>Générateur</span>
       </div>
 
-      <div class="nav-section-divider"></div>
-      <p class="nav-section-label">Exportation</p>
-
-      <div class="nav-item export-btn" id="export-json-btn" role="button" tabindex="0">
-        <span style="display:flex;align-items:center;gap:0.5rem"><i data-lucide="download" style="width:13px;opacity:0.65"></i>JSON (Sauvegarde)</span>
-      </div>
-
-      <div class="nav-item export-btn" id="export-csv-btn" role="button" tabindex="0">
-        <span style="display:flex;align-items:center;gap:0.5rem"><i data-lucide="download" style="width:13px;opacity:0.65"></i>CSV (Excel)</span>
-      </div>
-
-      <div class="nav-item export-btn" id="export-pdf-btn" role="button" tabindex="0">
-        <span style="display:flex;align-items:center;gap:0.5rem"><i data-lucide="download" style="width:13px;opacity:0.65"></i>Fiche PDF</span>
-      </div>
+      <input type="file" id="import-file-input" style="display:none" accept=".json,.csv">
 
       <div class="nav-item" id="lock-btn" role="button" tabindex="0">
         <span class="nav-icon"><i data-lucide="lock"></i></span>
@@ -121,6 +113,9 @@
   <section class="main-content" role="main">
     <header class="top-bar">
       <div style="display: flex; align-items: center; gap: 1rem">
+        <button class="btn btn-ghost btn-sm menu-toggle-btn" id="menu-toggle" style="padding: 0.5rem; border-radius: 50%" title="Menu">
+          <i data-lucide="menu" style="width:24px; height:24px"></i>
+        </button>
         <button class="btn btn-ghost btn-sm" id="top-bar-back" style="display: none; padding: 0.5rem; border-radius: 50%" title="Retour">
           <i data-lucide="arrow-left" style="width:20px; height:20px"></i>
         </button>
@@ -159,9 +154,17 @@
           </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem">
           <h2 style="font-size: 1.25rem">Éléments récents</h2>
-          <button class="btn btn-outline btn-sm" id="add-item-dashboard"><i data-lucide="plus" style="width:16px"></i> Nouveau</button>
+          <button class="btn btn-primary btn-sm" id="add-item-dashboard"><i data-lucide="plus" style="width:16px"></i> Nouveau</button>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--bw-bg-secondary);">
+          <button class="btn btn-ghost btn-sm" id="import-vault-btn" title="Importer des données"><i data-lucide="upload" style="width:16px"></i> Importer</button>
+          <div class="toolbar-sep" style="width: 1px; height: 24px; background: var(--bw-border); margin: 0 0.25rem"></div>
+          <button class="btn btn-ghost btn-sm" id="export-json-btn" title="Exporter en JSON"><i data-lucide="file-json" style="width:16px"></i> JSON</button>
+          <button class="btn btn-ghost btn-sm" id="export-csv-btn" title="Exporter en CSV"><i data-lucide="file-spreadsheet" style="width:16px"></i> CSV</button>
+          <button class="btn btn-ghost btn-sm" id="export-pdf-btn" title="Générer un PDF"><i data-lucide="file-text" style="width:16px"></i> PDF</button>
         </div>
       </div>
 
@@ -366,7 +369,7 @@
         <div class="details-body" style="padding: 0;">
           <div style="border: 1px dashed var(--bw-border); padding: 2rem; border-radius: var(--radius-lg); background: #fafafa;">
             <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.5rem">
-              <span style="font-size:1rem;color:var(--text-primary);flex:1; font-weight: 700;">Générer un mot de passe sécurisé</span>
+              <span style="font-size:0.875rem; color:var(--text-primary); flex:1; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Générer un mot de passe sécurisé</span>
               <button type="button" class="btn btn-ghost" id="tool-gen-refresh-btn" style="padding: 0.5rem"><i data-lucide="refresh-cw" style="width:18px"></i></button>
             </div>
             <div class="gen-password-display" style="margin-bottom: 1.5rem; background: white; padding: 1.5rem; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--bw-border);">
@@ -528,5 +531,6 @@
     // Generator is handled by app.js — nothing extra needed here
   });
 </script>
+<div id="sidebar-overlay" class="sidebar-overlay"></div>
 </body>
 </html>

@@ -259,6 +259,10 @@ const App = (() => {
     $('export-csv-btn').addEventListener('click', exportAsCSV);
     $('export-pdf-btn').addEventListener('click', exportAsPDF);
 
+    // Import Events
+    $('import-vault-btn').addEventListener('click', () => $('import-file-input').click());
+    $('import-file-input').addEventListener('change', handleImportFile);
+
     // Copy buttons in view modal
     $('view-copy-user').addEventListener('click', () => {
       const val = $('view-username-val').textContent;
@@ -363,6 +367,33 @@ const App = (() => {
       inp.type = inp.type === 'password' ? 'text' : 'password';
       $('toggle-item-pass').innerHTML = `<i data-lucide="${inp.type === 'password' ? 'eye' : 'eye-off'}"></i>`;
       lucide.createIcons();
+    });
+
+    // Menu logic (PC & Mobile)
+    const menuBtn = $('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = $('sidebar-overlay');
+    const shell = $('app-shell');
+
+    const toggleMenu = () => {
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('show');
+      } else {
+        shell.classList.toggle('sidebar-collapsed');
+      }
+    };
+
+    if (menuBtn) menuBtn.onclick = toggleMenu;
+    if (overlay) overlay.onclick = toggleMenu;
+    if ($('mobile-close-sidebar')) $('mobile-close-sidebar').onclick = toggleMenu;
+
+    // Close menu when navigating on mobile
+    document.querySelectorAll('.sidebar .nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (sidebar.classList.contains('mobile-open')) toggleMenu();
+      });
     });
   }
 
@@ -510,6 +541,7 @@ const App = (() => {
     // Column: Favorite
     const tdFav = document.createElement('td');
     tdFav.className = 'col-fav';
+    tdFav.setAttribute('data-label', 'Favori');
     const favBtn = document.createElement('button');
     favBtn.className = 'btn btn-icon btn-ghost fav-btn' + (item.favorite ? ' active' : '');
     favBtn.innerHTML = `<i data-lucide="star" style="width:18px; height:18px; ${item.favorite ? 'fill: var(--bw-primary);' : ''}"></i>`;
@@ -533,6 +565,7 @@ const App = (() => {
     // Column: Name
     const tdName = document.createElement('td');
     tdName.className = 'col-name';
+    tdName.setAttribute('data-label', 'Nom');
     tdName.textContent = item.name || 'Sans titre';
     tr.appendChild(tdName);
 
@@ -543,12 +576,14 @@ const App = (() => {
       // Column: User/Identifier
       const tdUser = document.createElement('td');
       tdUser.className = 'col-user';
+      tdUser.setAttribute('data-label', 'Identifiant');
       tdUser.textContent = item.username || '—';
       tr.appendChild(tdUser);
 
       // Column: Password
       const tdPass = document.createElement('td');
       tdPass.className = 'col-pass';
+      tdPass.setAttribute('data-label', 'Mot de passe');
       if (item.password && item.type === 'login') {
         const passGroup = document.createElement('div');
         passGroup.className = 'table-pass-group';
@@ -590,6 +625,7 @@ const App = (() => {
       // Column: Masked Notes
       const tdNotes = document.createElement('td');
       tdNotes.className = 'col-notes';
+      tdNotes.setAttribute('data-label', 'Notes');
       if (item.notes) {
         const noteGroup = document.createElement('div');
         noteGroup.className = 'table-pass-group';
@@ -634,6 +670,7 @@ const App = (() => {
     // Column: Date
     const tdDate = document.createElement('td');
     tdDate.className = 'col-updated';
+    tdDate.setAttribute('data-label', 'Modifié');
     tdDate.textContent = formatDate(item.updated_at);
     tr.appendChild(tdDate);
 
@@ -768,9 +805,15 @@ const App = (() => {
     hideEl($('view-vault'));
     hideEl($('view-details'));
     hideEl($('view-admin'));
-    showEl($('top-bar-back'), 'flex');
+    if (itemId) {
+      showEl($('top-bar-back'), 'flex');
+    } else {
+      hideEl($('top-bar-back'));
+    }
 
-    $('top-bar-title').textContent = item ? 'Modifier l\'élément' : 'Nouvel élément';
+    const isMobile = window.innerWidth <= 768;
+    const titleText = item ? 'Modifier' : 'Nouveau';
+    $('top-bar-title').textContent = isMobile ? titleText : (item ? 'Modifier l\'élément' : 'Nouvel élément');
     $('item-form').reset();
     
     // Reset strength meter
@@ -926,7 +969,8 @@ const App = (() => {
     hideEl($('view-details'));
     hideEl($('view-editor'));
     hideEl($('view-admin'));
-    $('top-bar-title').textContent = 'Générateur de mot de passe';
+    const isMobile = window.innerWidth <= 768;
+    $('top-bar-title').textContent = isMobile ? 'Générateur' : 'Générateur de mot de passe';
     showEl($('view-generator'), 'block');
     generateForTool();
   }
@@ -1221,6 +1265,120 @@ const App = (() => {
     printWindow.document.write(html);
     printWindow.document.close();
   }
+  async function handleImportFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const content = event.target.result;
+      let itemsToImport = [];
+
+      try {
+        if (file.name.endsWith('.json')) {
+          itemsToImport = JSON.parse(content);
+        } else if (file.name.endsWith('.csv')) {
+          itemsToImport = parseCSVImport(content);
+        } else {
+          throw new Error('Format de fichier non supporté. Utilisez JSON ou CSV.');
+        }
+
+        if (!Array.isArray(itemsToImport)) {
+          itemsToImport = [itemsToImport];
+        }
+
+        if (itemsToImport.length === 0) {
+          showToast('Aucun élément trouvé dans le fichier.', 'warning');
+          return;
+        }
+
+        const confirmImport = confirm(`Importer ${itemsToImport.length} éléments dans votre coffre ?`);
+        if (!confirmImport) return;
+
+        // Normaliser TOUTES les clés en minuscules et SANS ESPACES pour l'import JSON/CSV
+        itemsToImport = itemsToImport.map(item => {
+          const normalized = {};
+          for (const key in item) {
+            // "Mot de Passe" -> "motdepasse"
+            const cleanKey = key.toLowerCase().trim().replace(/\s+/g, '');
+            normalized[cleanKey] = item[key];
+          }
+          return normalized;
+        });
+
+        showToast(`Importation de ${itemsToImport.length} éléments...`, 'info');
+        
+        let successCount = 0;
+        for (const rawItem of itemsToImport) {
+          try {
+            // Map common field names
+            const plainItem = {
+              type: rawItem.type || (rawItem.password ? 'login' : (rawItem.notes || rawItem.note ? 'note' : 'login')),
+              name: rawItem.name || rawItem.nom || rawItem.title || 'Élément importé',
+              username: rawItem.username || rawItem.identifiant || rawItem.login || rawItem.user || '',
+              password: rawItem.password || rawItem.motdepasse || rawItem.pass || '',
+              url: rawItem.url || rawItem.website || rawItem.site || '',
+              notes: rawItem.notes || rawItem.note || '',
+              favorite: !!(rawItem.favorite || rawItem.favori)
+            };
+
+            if (!rawItem.name && !rawItem.nom && (rawItem.password || rawItem.notes)) {
+              plainItem.name = rawItem.url || rawItem.username || 'Import sans nom';
+            }
+
+            const encrypted = await Crypto.encryptVaultItem(plainItem, encryptionKey);
+            const result = await API.createItem(encrypted);
+            
+            vaultItems.unshift({ 
+              id: result.id, 
+              ...plainItem, 
+              ...encrypted, 
+              created_at: Date.now(), 
+              updated_at: Date.now() 
+            });
+            successCount++;
+          } catch (itemErr) {
+            console.error('Failed to import item:', itemErr);
+          }
+        }
+
+        showToast(`${successCount} éléments importés avec succès !`, 'success');
+        renderVault();
+        updateStats();
+
+      } catch (err) {
+        showToast(`Erreur d'importation: ${err.message}`, 'error');
+      } finally {
+        e.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function parseCSVImport(text) {
+    const lines = text.split(/\r?\n/).filter(line => line.trim());
+    if (lines.length < 2) return [];
+
+    // Détection auto du séparateur (, ou ;) car Excel FR utilise souvent ;
+    const firstLine = lines[0];
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semiCount = (firstLine.match(/;/g) || []).length;
+    const sep = semiCount > commaCount ? ';' : ',';
+
+    const headers = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+    
+    return lines.slice(1).map(line => {
+      // Regex adaptée au séparateur détecté
+      const regex = new RegExp(`${sep}(?=(?:(?:[^"]*"){2})*[^"]*$)`);
+      const parts = line.split(regex);
+      const item = {};
+      headers.forEach((header, index) => {
+        let val = parts[index] ? parts[index].trim().replace(/^"|"$/g, '').replace(/""/g, '"') : '';
+        item[header] = val;
+      });
+      return item;
+    });
+  }
 
   // ─── Public Interface ────────────────────────────────────────────────────────
   return {
@@ -1229,6 +1387,8 @@ const App = (() => {
     openViewPane,
     copyToClipboard,
     generateAndFill,
+    closeAllModals,
+    init
   };
 })();
 
