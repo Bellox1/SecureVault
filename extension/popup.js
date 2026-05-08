@@ -23,10 +23,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const openRegisterBtn = document.getElementById('open-register-btn');
 
   if (openSiteBtn) {
-    openSiteBtn.addEventListener('click', () => openAppWindow('http://172.20.10.4:3001/'));
+    openSiteBtn.addEventListener('click', () => openAppWindow('https://secure-vault.alwaysdata.net/'));
   }
   if (openRegisterBtn) {
-    openRegisterBtn.addEventListener('click', () => openAppWindow('http://172.20.10.4:3001/register.html'));
+    openRegisterBtn.addEventListener('click', () => openAppWindow('https://secure-vault.alwaysdata.net/register.html'));
   }
 
   // Au chargement, vérifier si une session existe

@@ -1,6 +1,6 @@
 importScripts('crypto_utils.js');
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = "https://secure-vault.alwaysdata.net/api";
 
 // Fonction pour envoyer les logs au serveur
 async function logToServer(level, message, data = {}) {
@@ -206,7 +206,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 function openAppAndInject() {
   chrome.windows.create({
-    url: 'http://localhost:3001/app.html',
+    url: 'https://secure-vault.alwaysdata.net/app.html',
     type: 'popup',
     width: 1240,
     height: 850
